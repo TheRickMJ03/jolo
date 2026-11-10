@@ -1,0 +1,32 @@
+{
+  "name": "spectrum-archive-app",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "models": "tsx src/models.ts",
+    "memory": "tsx src/memory.ts show",
+    "memory:clear": "tsx src/memory.ts clear",
+    "archive:setup": "tsx scripts/archive-setup.ts",
+    "archive:query": "tsx scripts/archive-query.ts",
+    "archive:compact": "tsx scripts/archive-compact.ts",
+    "archive:teardown": "tsx scripts/archive-teardown.ts",
+    "typecheck": "tsc",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1157.0",
+    "@duckdb/node-api": "1.5.6-r.2",
+    "spectrum-ts": "12.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}
