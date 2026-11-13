@@ -1,0 +1,8 @@
+# GLM-OCR for JOLO on the laptop (Ollama, CPU).
+# Build it with:  ollama create glm-ocr-jolo -f scripts/ollama/Modelfile.glm-ocr
+#
+# Why a Modelfile: Ollama's OpenAI-compatible endpoint cannot set the context
+# size per request, and a full menu as JSON needs more room than the default.
+FROM glm-ocr
+PARAMETER num_ctx 16384
+PARAMETER temperature 0

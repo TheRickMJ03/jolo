@@ -1,0 +1,878 @@
+photo_id,item,size,price,category,notes
+barbaras_01,Espresso,,2.5,drink,
+barbaras_01,Decaffeinated Espresso,,2.5,drink,
+barbaras_01,Cortado,,3,drink,
+barbaras_01,Latte,,3.5,drink,
+barbaras_01,Black Coffee,,2.75,drink,
+barbaras_01,Mocha,,6.5,drink,
+barbaras_01,Afogato,,5.5,drink,spelled as on menu
+barbaras_01,Hot Chocolate,,6,drink,
+barbaras_01,Cappucino,,6,drink,spelled as on menu
+barbaras_01,Black Iced Coffee,,2.7,drink,
+barbaras_01,Iced Latte,,4.5,drink,
+barbaras_01,Whipped Cream,,0.5,modifier,modifier; listed under Additional $0.50
+barbaras_01,Caramel,,0.5,modifier,modifier; listed under Additional $0.50
+barbaras_01,Chocolate Syrup,,0.5,modifier,modifier; listed under Additional $0.50
+barbaras_01,Almond Milk,,1,modifier,modifier
+barbaras_01,Oat Milk,,1,modifier,modifier
+barbaras_01,Anna's Café (Paçoca),,9.5,drink,
+barbaras_01,Arthur's Café (Oreo),,9.5,drink,
+barbaras_01,Melissa's Café (Berries),,9,drink,
+barbaras_01,Gabby's Café (Nutella),,9.5,drink,
+barbaras_01,Sophie's Café,,9.5,drink,
+barbaras_01,Orange,,8.5,drink,juice
+barbaras_01,Summer Juice,,9.5,drink,
+barbaras_01,Passionfruit Juice,,7,drink,
+barbaras_01,Strawberry Juice,,7,drink,
+barbaras_01,Strawberry Milkshake,,9,drink,
+barbaras_01,Add Condensed Milk,,1,modifier,modifier
+barbaras_01,Green Juice,,8.5,drink,Verified
+barbaras_01,Açai with Orange,,9.5,drink,
+barbaras_01,Açai Shake,,9.5,drink,
+barbaras_01,Mint Pineapple Juice,,6.5,drink,
+barbaras_01,Whey Protein Shake,,10.5,drink,
+barbaras_01,Italian Soda,,5.5,drink,
+barbaras_01,Tea,,3,drink,flavors: Black/Green/Chamomile/Peppermint/Tangerine Orange/Raspberry/Blueberry/Peach/Cinnamon Apple Spice
+coastcafe_16,Iced Cookie Butter Latte,SM,8.5,drink,
+coastcafe_16,Iced Cookie Butter Latte,LG,9.25,drink,
+coastcafe_16,Iced Toasted Coconut Latte,SM,8.5,drink,
+coastcafe_16,Iced Toasted Coconut Latte,LG,9.25,drink,
+coastcafe_16,Iced Brown Sugar Shaken Espresso,SM,7.5,drink,
+coastcafe_16,Iced Brown Sugar Shaken Espresso,LG,8.25,drink,
+coastcafe_16,Energy Boost,,1.25,modifier,modifier for refreshers
+coastcafe_16,Iced Latte,SM,7.25,drink,CHECK - small text; flavors Dulce de Leche/Caramel/Mocha/Hazelnut/Vanilla
+coastcafe_16,Iced Latte,LG,7.75,drink,CHECK - small text
+coastcafe_16,Cold Brew,SM,5.25,drink,
+coastcafe_16,Cold Brew,LG,6,drink,
+coastcafe_16,Cold Brew Latte,SM,6,drink,CHECK - small text
+coastcafe_16,Cold Brew Latte,LG,6.5,drink,CHECK - small text
+coastcafe_16,Cold Foam Add On,,1.25,modifier,CHECK - modifier; small text
+coastcafe_16,Iced Matcha Latte,SM,7.25,drink,CHECK - flavors Honey/Vanilla
+coastcafe_16,Iced Matcha Latte,LG,7.75,drink,CHECK
+coastcafe_16,Iced Matcha Latte (Seasonal),SM,7.75,drink,CHECK - Strawberry/Blueberry/Lavender/Mango
+coastcafe_16,Iced Matcha Latte (Seasonal),LG,8.25,drink,CHECK
+coastcafe_16,Pistachio Matcha,SM,8,drink,CHECK
+coastcafe_16,Pistachio Matcha,LG,8.5,drink,CHECK
+coastcafe_16,Specialty Cloud Matcha,SM,8.75,drink,CHECK
+coastcafe_16,Specialty Cloud Matcha,LG,9.25,drink,CHECK
+coastcafe_16,Americano,,4.25,drink,
+coastcafe_16,Cappuccino,,4.75,drink,
+coastcafe_16,Single Shot,,3.5,drink,
+coastcafe_16,Double Shot,,4,drink,
+coastcafe_16,Cortado,,4.5,drink,
+coastcafe_16,Macchiato,,4.5,drink,
+coastcafe_16,Drip Coffee,SM,3.25,drink,
+coastcafe_16,Drip Coffee,LG,3.75,drink,
+coastcafe_16,Decaf Coffee,SM,3.5,drink,
+coastcafe_16,Decaf Coffee,LG,4,drink,
+coastcafe_16,Hot Latte,SM,5.75,drink,
+coastcafe_16,Hot Latte,LG,6.25,drink,
+coastcafe_16,Dulce de Leche Latte,SM,6.75,drink,
+coastcafe_16,Dulce de Leche Latte,LG,7.25,drink,
+coastcafe_16,Caramel Latte,SM,6.75,drink,
+coastcafe_16,Caramel Latte,LG,7.25,drink,
+coastcafe_16,Mocha Latte,SM,6.75,drink,
+coastcafe_16,Mocha Latte,LG,7.25,drink,
+coastcafe_16,Hazelnut Latte,SM,6.75,drink,
+coastcafe_16,Hazelnut Latte,LG,7.25,drink,
+coastcafe_16,Vanilla Latte,SM,6.25,drink,CHECK
+coastcafe_16,Vanilla Latte,LG,6.75,drink,CHECK
+coastcafe_16,Hot Matcha,SM,6.5,drink,
+coastcafe_16,Hot Matcha,LG,7,drink,
+coastcafe_16,Hot Chocolate,SM,3.5,drink,CHECK
+coastcafe_16,Hot Chocolate,LG,4,drink,CHECK
+coastcafe_16,Sail Away,16oz,7.5,drink,refresher
+coastcafe_16,Strawberry Lemonade,16oz,6.75,drink,refresher
+coastcafe_16,Blueberry Lemonade,16oz,6.75,drink,CHECK - refresher
+coastcafe_16,The Sunset,16oz,8.25,drink,CHECK - smoothie; tiny text
+coastcafe_16,Berry Bliss,16oz,7.75,drink,CHECK - smoothie; tiny text
+coastcafe_16,Green Dream,16oz,8.5,drink,CHECK - smoothie; tiny text
+787cafe_14,Wow Lattes,,8,drink,flavors Coquito/Horchata/Mazapan/Tres Leches/Dulce de Leche; +tax
+787cafe_14,Classic Latte,,6,drink,CHECK - small handwriting
+787cafe_14,Good Tasty Matcha,,7,drink,#NAME?
+787cafe_14,Cold Brew Selection,,,drink,price is a range $6-9; left blank
+787cafe_14,Pour Overs,,8,drink,#NAME?
+787cafe_14,Rum or Whiskey Infused,,3,modifier,modifier; upgrade for specialty coffee
+curiosity_07b,Espresso,,3,drink,double espresso
+curiosity_07b,Cappuccino,,4.75,drink,
+curiosity_07b,Machiato,,3.5,drink,spelled as on menu
+curiosity_07b,Cortado,,4,drink,
+curiosity_07b,Americano,,3.5,drink,
+curiosity_07b,Flat White,,4.75,drink,
+curiosity_07b,Latte,,5,drink,iced or hot
+curiosity_07b,Rose Latte,,6,drink,
+curiosity_07b,Pumpkin Spice Latte,,6,drink,
+curiosity_07b,Lavender Vanilla Latte,,6,drink,
+curiosity_07b,Mocha,,6,drink,
+curiosity_07b,Spermint mocha latte,,6.5,drink,spelled as on menu
+curiosity_07b,Hot Chocolate,,5.75,drink,
+curiosity_07b,Spermint hot chocolate,,6,drink,spelled as on menu
+curiosity_07b,Caramel Latte,,6,drink,
+curiosity_07b,Straberry Latte,,6.5,drink,spelled as on menu
+curiosity_07b,Caramel Frappe,,6,drink,
+curiosity_07b,Mocha Frappe,,6,drink,
+curiosity_07b,Cold Brew,,3.5,drink,
+curiosity_07b,Matcha,,5.8,drink,tea latte
+curiosity_07b,London Fog,,5.5,drink,
+curiosity_07b,Rose London Fog,,5.5,drink,
+curiosity_07b,Lavender Vanilla Matcha,,6,drink,
+curiosity_07b,Rose Matcha,,6,drink,
+curiosity_07b,Strawberry Matcha,,6.5,drink,
+curiosity_07b,Peach Matcha,,6.5,drink,
+curiosity_07b,Loose Tea,,4,drink,flavors: Passion Fruits/Hibiscus/Mango/Morroco/Blue Mango/Green Tea (Gunpowder)/Peach/Chamomille/Tumeric/Black Rose/English Breakfast
+curiosity_07b,Oat,,1,modifier,modifier; milk substitution
+curiosity_07b,Almond,,1,modifier,modifier; milk substitution
+curiosity_07c,Laffy taffy,,4.5,drink,juice special; half lychee/half pomegranate/lychee jelly/lemon/green apple pop
+curiosity_07c,Bubble Tea (Teas),,4.75,drink,flavors: Mango/Strawberry/Honeydew/Taro/Milk Tea/Coconut/Thai/Jasmine/Peach/Banana/Matcha
+curiosity_07c,Bubble Tea (Juices),,4.5,drink,flavors: Passionfruit/Mango/Strawberry/Lychee/Acai/Peach/Guava/Pineapple/Lemon/pomegranate
+curiosity_07c,Green with a Twist,,5.25,drink,boba smoothie
+curiosity_07c,Pink Plush,,5.25,drink,boba smoothie
+curiosity_07c,Tropics,,5.25,drink,boba smoothie
+curiosity_07c,Matcha Delight,,5.25,drink,boba smoothie
+curiosity_07c,Fruit Smoothies,,5.25,drink,flavors: Mango/Banana/Passion fruit/Strawberry
+curiosity_07c,Ramune Soda,,2.75,drink,
+curiosity_07c,Can Soda,,1.75,drink,
+curiosity_07c,Oat Milk,,1,modifier,modifier
+curiosity_07c,Almond Milk,,1,modifier,modifier
+curiosity_07c,Tapioca,,1,modifier,modifier; add-on
+curiosity_07c,Brown Sugar,,1,modifier,modifier; add-on
+curiosity_07c,Lychee Jelly,,1,modifier,modifier; add-on
+curiosity_07c,Mango Pop,,1,modifier,modifier; add-on
+curiosity_07c,Peach Pop,,1,modifier,modifier; add-on
+lafontaine_15,Joe's Old Fashion Lemonade,,6.75,drink,
+lafontaine_15,Strawberry Lemonade,,7,drink,
+lafontaine_15,Mango Lemonade,,7,drink,
+lafontaine_15,Raspberry Lemonade,,7,drink,
+lafontaine_15,Mango & Pineapple Smoothie,,8.95,drink,
+lafontaine_15,Strawberry & Banana Smoothie,,8.95,drink,
+lafontaine_15,Berry Smoothie,,9.25,drink,
+lafontaine_15,Pupmoothie- Frozen Dog Treat,,5,drink,DECIDE - drink for dogs; keep or delete
+lafontaine_15,La Fontaine Refresher,,7.25,drink,
+mauro_10,Fresh Brewed Coffee,Sm,1.75,drink,
+mauro_10,Fresh Brewed Coffee,Md,2,drink,
+mauro_10,Fresh Brewed Coffee,Lg,2.5,drink,
+mauro_10,Caffé Latte,Sm,2.75,drink,
+mauro_10,Caffé Latte,Md,3.25,drink,
+mauro_10,Caffé Latte,Lg,4,drink,
+mauro_10,Expresso,,1.75,drink,CHECK - under glare; spelled as on menu
+mauro_10,Cortado,,1.75,drink,CHECK - under glare
+mauro_10,Meia,,2,drink,
+mauro_10,Abatanado,,1.75,drink,
+mauro_10,Cappuccino,Sm,3,drink,CHECK - name faded by glare
+mauro_10,Cappuccino,Md,3.5,drink,
+mauro_10,Cappuccino,Lg,4,drink,
+mauro_10,Tea,Sm,1.75,drink,flavors: Green/Chamomile/Lemon/Lemon Balm
+mauro_10,Tea,Md,2,drink,
+mauro_10,Tea,Lg,2.5,drink,
+mauro_10,Hot Chocolate,Sm,2.25,drink,
+mauro_10,Hot Chocolate,Md,2.75,drink,
+mauro_10,Hot Chocolate,Lg,3.5,drink,
+mauro_10,Ice Coffee,Sm,2.75,drink,
+mauro_10,Ice Coffee,Md,3.25,drink,
+mauro_10,Ice Coffee,Lg,4,drink,
+mauro_10,Ice Coffee Latte,Sm,4,drink,
+mauro_10,Ice Coffee Latte,Lg,4.75,drink,
+honey_13,Frappes,,8,drink,flavors: Coffee/Honey/Nutella/Pistachio/Lotus/Caramel
+honey_13,Latte,,5,drink,iced or hot
+honey_13,Espresso,,4,drink,
+honey_13,Flat White,,5,drink,
+honey_13,Cappuccino,,5,drink,
+honey_13,Hot Chocolate,,5,drink,
+honey_13,Turkish Coffee,,4,drink,
+honey_13,Mocha,,7,drink,
+honey_13,Black Tea,,4,drink,
+honey_13,Green Tea,,4,drink,
+honey_13,Herbal Tea,,4,drink,
+honey_13,Matcha,,8,drink,
+honey_13,Chai,,7,drink,
+honey_13,Honey's Specialty Lattes,,8,drink,flavors: Honey Bun/Dulce De Leche/Caramel/Biscoff/Chocolate Covered Strawberry/Lavender Honey/Toasted Almond Mocha/Brown Sugar Shaken Espresso/Spanish/Pumpkin Spice/Sugar Free Vanilla/Nutella/Pistachio; CHECK faded names
+honey_13,Smoothies,,9,drink,flavors: Strawberry banana/Strawberry/Mixed Berry/Mango/Peach Mango/Mango Pineapple/Honey Banana milk
+honey_13,Mocktails,,7,drink,flavors: Passion Fruit Mango/Peach Mango/Strawberry/Watermelon
+honey_13,Nutella Milk Shake,,8,drink,
+honey_13,Dulce de Leche Milk Shake,,8,drink,
+honey_13,Kinder Bueno Milk Shake,,9,drink,
+honey_13,Oreo Milk Shake,,8,drink,
+honey_13,Lotus Milk Shake,,9,drink,
+honey_13,Cheesecake Milk Shake,,10,drink,
+honey_13,Pistachio Milk Shake,,10,drink,
+honey_13,Espresso Milk Shake,,10,drink,
+honey_13,Dubai Milk Shake,,10,drink,
+honey_13,Protein Shake,,11,drink,
+honey_13,Refreshers,,7,drink,flavors: Mint Lemonade/Lavender Lemonade/Honey Coconut Colada/Dragon Fruit/Mango/Strawberry Lemonade
+minas_03,Vitamina Mista Com Leite,16oz,7.25,drink,mixed smoothie up to 2 flavors
+minas_03,Almond milk,,0.5,modifier,modifier
+minas_03,Simples,,6.75,drink,simple smoothie
+minas_03,Vitamina Açaí,16oz,7.95,drink,açaí smoothie
+minas_03,Lata,,2,drink,can soda
+minas_03,Guarana Lata,,2.5,drink,
+minas_03,Garrafa,20oz,2.5,drink,bottle
+minas_03,Agua,,1,drink,water
+minas_03,Red Bull,8.4oz,2.5,drink,
+minas_03,Monster,,3.5,drink,
+minas_03,Snapple,,2,drink,
+minas_03,Água com Gás,,2.5,drink,sparkling water
+minas_03,Suco Misto,,6.75,drink,mixed juice up to 2 flavors
+minas_03,Suco Simples,,5.5,drink,
+minas_03,Flat Tummy,,7.95,drink,juice
+minas_03,Detox,,7.95,drink,juice
+minas_03,Açaí com Laranja,,7.95,drink,
+minas_03,Suco de Laranja,,6,drink,
+minas_03,Glowing Sking Drink,,7.95,drink,spelled as on menu
+natas_09,Espresso,,1.75,drink,
+natas_09,Double Espresso,,3,drink,
+natas_09,Latte,Sm,2.75,drink,
+natas_09,Latte,Md,3.25,drink,
+natas_09,Latte,Lg,4,drink,
+natas_09,Cappuccino,Sm,3,drink,
+natas_09,Cappuccino,Md,3.5,drink,
+natas_09,Cappuccino,Lg,4.25,drink,
+natas_09,Americano,Sm,2.25,drink,
+natas_09,Americano,Md,2.75,drink,
+natas_09,Americano,Lg,3.25,drink,
+natas_09,Fresh Brewed Coffee,Sm,1.75,drink,
+natas_09,Fresh Brewed Coffee,Md,2,drink,written as $2
+natas_09,Fresh Brewed Coffee,Lg,2.5,drink,
+natas_09,Meia de Leite,,2.25,drink,
+natas_09,Cortado aka Garoto or Pingado,,1.75,drink,
+natas_09,Iced Coffee,Sm,2.75,drink,
+natas_09,Iced Coffee,Lg,3.5,drink,
+natas_09,Iced Latte,Sm,3.75,drink,
+natas_09,Iced Latte,Lg,4.75,drink,
+natas_09,Black,Sm,1.75,drink,tea
+natas_09,Black,Md,2,drink,tea
+natas_09,Black,Lg,2.5,drink,tea; CHECK glare
+natas_09,Green,Sm,1.75,drink,tea
+natas_09,Green,Md,2,drink,tea
+natas_09,Green,Lg,2.5,drink,tea
+natas_09,Chamomile,Sm,1.75,drink,tea
+natas_09,Chamomile,Md,2,drink,tea
+natas_09,Chamomile,Lg,2.5,drink,tea
+natas_09,Hot Chocolate,Sm,2.25,drink,
+natas_09,Hot Chocolate,Md,2.75,drink,
+natas_09,Hot Chocolate,Lg,3.5,drink,
+natas_09,Smoothies,16oz,7,drink,flavors: Açai/Pitaya/Açai-Pitaya Combo/Super Green/Chocolate Berry/Strawberry/Banana/Strawberry & Banana/Pineapple/Custom
+natas_09,Smoothies,24oz,9,drink,same flavors
+natas_09,Condensed Milk,,0.5,modifier,modifier; written as 50¢
+natas_09,Honey,,0.5,modifier,modifier; written as 50¢
+natas_09,Dry Milk,,0.5,modifier,modifier; written as 50¢
+natas_09,Coconut Flakes,,0.5,modifier,modifier; written as 50¢
+natas_09,Granola,,0.5,modifier,modifier; written as 50¢
+natas_09,Agave,,0.5,modifier,modifier; written as 50¢
+natas_09,Nutella,,1,modifier,modifier; CHECK name under glare
+natas_09,Peanut Butter,,1,modifier,modifier; CHECK name under glare
+natas_09,Protein,,1,modifier,modifier; CHECK name under glare
+sankofa_22,Drip Coffee of the Day,12oz,3,drink,
+sankofa_22,Drip Coffee of the Day,16oz,3.5,drink,
+sankofa_22,Espresso,,4.25,drink,X in size columns = no sizes
+sankofa_22,Macchiato,,3.75,drink,
+sankofa_22,Espresso con Panna,,3.75,drink,
+sankofa_22,Cortado,,3.75,drink,
+sankofa_22,Cappuccino,,4.25,drink,
+sankofa_22,Flat White,,4.5,drink,
+sankofa_22,Americano,12oz,3.75,drink,
+sankofa_22,Americano,16oz,4.25,drink,
+sankofa_22,Latte,12oz,4.25,drink,
+sankofa_22,Latte,16oz,4.75,drink,
+sankofa_22,Mocha,12oz,5,drink,
+sankofa_22,Mocha,16oz,5.5,drink,
+sankofa_22,Yogic Chai,12oz,5,drink,
+sankofa_22,Yogic Chai,16oz,5.5,drink,
+sankofa_22,Hot Chocolate,12oz,3.75,drink,
+sankofa_22,Hot Chocolate,16oz,4,drink,
+sankofa_22,Steamed Milk,12oz,2.75,drink,16oz marked X
+sankofa_22,Bambino,12oz,1.5,drink,16oz marked X
+sankofa_22,Assorted Teas,12oz,3,drink,
+sankofa_22,Assorted Teas,16oz,3.25,drink,
+sankofa_22,Syrups,,1,modifier,modifier; Amaretto/Caramel/Hazelnut/Lavender/Vanilla/SF Vanilla/SF Hazelnut
+sankofa_22,Alternative Milk,,0.5,modifier,modifier
+sankofa_22,Whipped Cream/Cold Foam,,0.5,modifier,modifier
+sankofa_22,Ice Cold Brew,16oz,5,drink,
+sankofa_22,Ice Cold Brew,20oz,5.5,drink,
+sankofa_22,Ice Cappuccino,16oz,4.25,drink,20oz marked X
+sankofa_22,Iced Americano,16oz,4.5,drink,
+sankofa_22,Iced Americano,20oz,5.5,drink,
+sankofa_22,Coffee Tonic,16oz,4.75,drink,20oz marked X
+sankofa_22,Iced Flat White,16oz,4.5,drink,20oz marked X
+sankofa_22,Iced Latte,16oz,4.75,drink,
+sankofa_22,Iced Latte,20oz,5.25,drink,
+sankofa_22,Iced Mocha,16oz,5.5,drink,
+sankofa_22,Iced Mocha,20oz,5.75,drink,
+sankofa_22,Iced Tea,16oz,3.75,drink,daily offerings vary
+sankofa_22,Iced Tea,20oz,4.25,drink,
+sankofa_22,Iced Chai,16oz,5,drink,one word taped over on the board
+sankofa_22,Iced Chai,20oz,5.5,drink,
+skip-to-my-brew_19,americano,small,4.5,drink,CHECK - price column sits one line above names; sizes not named
+skip-to-my-brew_19,americano,large,5.5,drink,CHECK alignment
+skip-to-my-brew_19,cappuccino,small,5.5,drink,CHECK alignment
+skip-to-my-brew_19,cappuccino,large,6.5,drink,CHECK alignment
+skip-to-my-brew_19,cortado,,5,drink,CHECK alignment
+skip-to-my-brew_19,espresso,small,2.5,drink,CHECK alignment
+skip-to-my-brew_19,espresso,large,3.75,drink,CHECK alignment
+skip-to-my-brew_19,flat white,small,5,drink,CHECK alignment
+skip-to-my-brew_19,flat white,large,6,drink,CHECK alignment
+skip-to-my-brew_19,latte,small,5.5,drink,CHECK alignment
+skip-to-my-brew_19,latte,large,6.5,drink,CHECK alignment
+skip-to-my-brew_19,cold brew,small,4.75,drink,CHECK alignment
+skip-to-my-brew_19,cold brew,large,5.75,drink,CHECK alignment
+skip-to-my-brew_19,drip coffee,small,3,drink,CHECK alignment
+skip-to-my-brew_19,drip coffee,medium,3.5,drink,CHECK alignment
+skip-to-my-brew_19,drip coffee,large,4,drink,CHECK alignment
+skip-to-my-brew_19,iced coffee,small,4,drink,CHECK alignment
+skip-to-my-brew_19,iced coffee,large,5,drink,CHECK alignment
+skip-to-my-brew_19,hot tea,small,3.5,drink,sizes not named
+skip-to-my-brew_19,hot tea,medium,4,drink,
+skip-to-my-brew_19,hot tea,large,4.5,drink,
+skip-to-my-brew_19,iced tea,small,4,drink,
+skip-to-my-brew_19,iced tea,large,5,drink,
+skip-to-my-brew_19,chai,small,5.5,drink,
+skip-to-my-brew_19,chai,large,6.5,drink,
+skip-to-my-brew_19,matcha,small,5.5,drink,
+skip-to-my-brew_19,matcha,large,6.5,drink,
+skip-to-my-brew_19,Fizzy Lemonade,,6,drink,CHECK - cut off at photo edge; flavors Brazilian/Lavender/Strawberry; may have a second price
+skip-to-my-brew_19,cafe cola,,6,drink,
+skip-to-my-brew_19,shaken espresso,,8,drink,flavors: Brown Sugar/Ube
+skip-to-my-brew_19,sweetfoam latte,,8.5,drink,flavors: Caramel/Matcha/Strawberry/Tiramisu/Ube
+skip-to-my-brew_19,Flavors,,1,modifier,modifier; Caramel/Hazelnut/Mocha/SF Vanilla/Vanilla/Coconut/Lavender/Strawberry/Ube/White Mocha
+skip-to-my-brew_19,alternative milk,,0.5,modifier,modifier; Almond/Coconut/Macadamia/Oat
+skip-to-my-brew_19,French Toast Latte,,,drink,seasonal; no price shown
+skip-to-my-brew_19,Blueberry Pancake Latte,,,drink,seasonal; no price shown
+vicentes_04b,Mango Madness,,5.5,drink,smoothie; section price
+vicentes_04b,Pumpkin Spice,,5.5,drink,smoothie
+vicentes_04b,Prendeme,,5.5,drink,smoothie
+vicentes_04b,Primavera,,5.5,drink,smoothie
+vicentes_04b,Hearty Breakfast,,5.5,drink,smoothie
+vicentes_04b,Berry Madness,,5.5,drink,smoothie
+vicentes_04b,Straw-Nana,,5.5,drink,smoothie
+vicentes_04b,Scooby-Doo,,5.5,drink,smoothie
+vicentes_04b,Green Detox,,5.5,drink,smoothie
+vicentes_04b,Acai Smoothie,,5.5,drink,smoothie
+vicentes_04b,Vitamina de Abacate,,5.5,drink,smoothie
+vicentes_04b,Orange Juice,,4.5,drink,
+vicentes_04b,"Pineapple, Orange & Carrot",,5,drink,
+vicentes_04b,"Carrot, Apple, & Orange",,5,drink,
+vicentes_04b,Orange & Carrot,,4.75,drink,
+vicentes_04b,"Carrot, Apple & Ginger",,5,drink,
+vicentes_04b,"Celery, Carrot & Tomato",,4.75,drink,
+vicentes_04b,"Kale, Cucumber, & Apple",,5,drink,
+waterbar_20,Crown Chakra: Connected,20oz,7.5,drink,CHECK - one price printed at top of Elixirs section; assumed to apply to all 7
+waterbar_20,Third Eye Chakra: Seeing,20oz,7.5,drink,CHECK - section price
+waterbar_20,Throat Chakra: Communication,20oz,7.5,drink,CHECK - section price
+waterbar_20,Heart Chakra: Love,20oz,7.5,drink,CHECK - section price
+waterbar_20,Solar Plexus Chakra: Strength,20oz,7.5,drink,CHECK - section price
+waterbar_20,Sacral Chakra: Creativity,20oz,7.5,drink,CHECK - section price
+waterbar_20,Root Chakra: Grounding,20oz,7.5,drink,CHECK - section price
+waterbar_20,Chakra Flight,,35,drink,sample of all 7 elixirs
+sweet-kitchen_18,Espresso,single,3.25,drink,CHECK alignment - prices sit one line above names
+sweet-kitchen_18,Espresso,double,3.75,drink,CHECK alignment
+sweet-kitchen_18,Macchiato,single,3.5,drink,CHECK alignment
+sweet-kitchen_18,Macchiato,double,4,drink,CHECK alignment
+sweet-kitchen_18,Cortado,double,4.25,drink,CHECK alignment
+sweet-kitchen_18,Turkish Coffee,double,5,drink,CHECK alignment
+sweet-kitchen_18,House Brewed,12oz,3.75,drink,CHECK alignment
+sweet-kitchen_18,House Brewed,16oz,4,drink,CHECK alignment
+sweet-kitchen_18,Americano,12oz,4,drink,CHECK alignment
+sweet-kitchen_18,Americano,16oz,5,drink,CHECK alignment
+sweet-kitchen_18,Cappuccino,12oz,5,drink,CHECK alignment
+sweet-kitchen_18,Cappuccino,16oz,6,drink,CHECK alignment
+sweet-kitchen_18,Mocha,12oz,6,drink,CHECK alignment
+sweet-kitchen_18,Mocha,16oz,6.5,drink,CHECK alignment
+sweet-kitchen_18,Cafe Latte,12oz,5,drink,CHECK alignment
+sweet-kitchen_18,Cafe Latte,16oz,6,drink,CHECK alignment
+sweet-kitchen_18,Flat White,12oz,5.5,drink,CHECK alignment; 16oz shown as dash
+sweet-kitchen_18,Hot Chocolate,12oz,4.75,drink,CHECK alignment
+sweet-kitchen_18,Hot Chocolate,16oz,5.5,drink,CHECK alignment
+sweet-kitchen_18,Chai Latte,12oz,5.25,drink,CHECK alignment
+sweet-kitchen_18,Chai Latte,16oz,6.25,drink,CHECK alignment
+sweet-kitchen_18,Dirty Chai Latte,12oz,6,drink,CHECK alignment
+sweet-kitchen_18,Dirty Chai Latte,16oz,7,drink,CHECK alignment
+sweet-kitchen_18,Matcha Latte,12oz,6,drink,CHECK alignment
+sweet-kitchen_18,Matcha Latte,16oz,7,drink,CHECK alignment
+sweet-kitchen_18,Hot Tea,12oz,3,drink,CHECK alignment
+sweet-kitchen_18,Hot Tea,16oz,4,drink,CHECK alignment
+sweet-kitchen_18,Almond Milk,,0.95,modifier,modifier
+sweet-kitchen_18,Oat Milk,,0.95,modifier,modifier
+sweet-kitchen_18,Soy Milk,,0.95,modifier,modifier
+sweet-kitchen_18,Iced Coffee,16oz,4.95,drink,CHECK alignment
+sweet-kitchen_18,Iced Coffee,20oz,5.5,drink,CHECK alignment
+sweet-kitchen_18,Nitro Cold Brew,16oz,5.95,drink,CHECK alignment
+sweet-kitchen_18,Nitro Cold Brew,20oz,6.5,drink,CHECK alignment
+sweet-kitchen_18,Iced Americano,16oz,5,drink,CHECK alignment; 20oz shown as dash
+sweet-kitchen_18,Iced Latte,16oz,5.5,drink,CHECK alignment
+sweet-kitchen_18,Iced Latte,20oz,6,drink,CHECK alignment
+sweet-kitchen_18,Iced Mocha,16oz,6,drink,CHECK alignment
+sweet-kitchen_18,Iced Mocha,20oz,6.5,drink,CHECK alignment
+sweet-kitchen_18,Iced Chai Latte,16oz,5.75,drink,CHECK alignment
+sweet-kitchen_18,Iced Chai Latte,20oz,6.25,drink,CHECK alignment
+sweet-kitchen_18,Iced Dirty Chai,16oz,6.5,drink,CHECK alignment
+sweet-kitchen_18,Iced Dirty Chai,20oz,7.5,drink,CHECK alignment
+sweet-kitchen_18,Iced Matcha Latte,16oz,6,drink,CHECK alignment
+sweet-kitchen_18,Iced Matcha Latte,20oz,7,drink,CHECK alignment
+sweet-kitchen_18,Iced Tea,16oz,4.5,drink,CHECK alignment
+sweet-kitchen_18,Iced Tea,20oz,5,drink,CHECK alignment
+sweet-kitchen_18,Freddo Espresso,16oz,5.5,drink,CHECK alignment; 20oz shown as dash
+sweet-kitchen_18,Freddo Cappuccino,,6.75,drink,CHECK alignment; single price in 20oz column
+sweet-kitchen_18,Mocha Frappuccino,,7,drink,CHECK alignment
+sweet-kitchen_18,Caramel Frappuccino,,7,drink,CHECK alignment
+sweet-kitchen_18,Lemonade,,7,drink,CHECK alignment
+sweet-kitchen_18,Syrups,,0.5,modifier,modifier; written as +50c; many flavors
+bluecafe_02,Croque Monsieur,,12,food,bilingual menu (English + Portuguese)
+bluecafe_02,Louvre Sandwich,,12,food,
+bluecafe_02,Royal Sandwich,,15,food,
+bluecafe_02,Smoke Salmon Croissant,,16.5,food,
+bluecafe_02,Blu Turkey Sandwich,,16.5,food,
+bluecafe_02,Pesto Fresh Mozzarella Sandwich,,17.5,food,
+bluecafe_02,Wholegrain Bread,,1,modifier,per slice
+bluecafe_02,Gluten Free Bread,,1.5,modifier,per slice
+bluecafe_02,Croissant Plain,,2.5,food,
+bluecafe_02,Whole Grain Croissant,,2.7,food,
+bluecafe_02,Almond Croissant,,2.7,food,
+cortaditos_11,Cubano Cortaditos,,11,food,no $ sign on menu
+cortaditos_11,Pollo Loco,,10,food,
+cortaditos_11,Medianoche,,9,food,
+cortaditos_11,Jamón & Queso,,7,food,
+cortaditos_11,Pan con Tortilla,,6,food,
+cortaditos_11,Veggie Sandwich,,9,food,
+cortaditos_11,Cubano Clasico,,10.5,food,written as 10.5
+cortaditos_11,Pan con Bistec,,11,food,
+cortaditos_11,Croqueta Preparada,,9,food,
+cortaditos_11,Vegano Cubano,,13,food,
+cortaditos_11,Tostada,,4,food,
+curiosity_07a,Chicken Onigiri,,4.5,food,
+curiosity_07a,Salmon Onigiri,,4.75,food,
+curiosity_07a,Salmon Avocado Oniguiri,,5.25,food,spelled as on menu
+curiosity_07a,Mushroom Onigiri,,4.25,food,
+curiosity_07a,Scallion Pancake,,4.5,food,
+curiosity_07a,Gyoza,,6,food,Pork/Chicken/Veggie
+curiosity_07a,Edamame,,4,food,
+curiosity_07a,Spicy Edaname,,4.25,food,spelled as on menu
+curiosity_07a,Satay Chicken,,4.5,food,
+curiosity_07a,Large Steamed Buns,3 for,9,food,price is for 3 buns
+curiosity_07a,Small Steamed Buns,5 for,9,food,price is for 5 buns; one filling crossed out
+curiosity_07a,Salmon Teriyaki,,22.5,food,
+curiosity_07a,Chicken Teriyaki,,16.6,food,
+curiosity_07a,Veggie Bowl,,13.5,food,
+curiosity_07a,Kimchi Fried Rice,,17.5,food,
+curiosity_07a,Okonomiyaki,,10,food,
+curiosity_07a,Chicken Yakisoba,,16.5,food,
+curiosity_07a,Beef Bulgogi,,17.75,food,
+curiosity_07a,Korean Fried Chicken,,10.5,food,Regular/Sweet Soy Sauce/Gochujang
+curiosity_07a,Mochi Waffle (1-2 topings),,10,food,spelled as on menu
+curiosity_07a,Mochi Waffle (3 topings),,11.5,food,
+curiosity_07a,Acai Bowl,,12,food,
+curiosity_07a,Affogato,,,food,no price shown
+curiosity_07a,Mochi,,,food,ice cream; no price shown
+curiosity_07a,Melona,,,food,ice cream; no price shown
+encanto_05,Churrasco,,,food,tablet menu; no prices
+encanto_05,New York Steak,,,food,no prices
+encanto_05,Canto de la Tierra,,,food,CHECK - name cut off at left edge
+encanto_05,Fogón Ancestral,,,food,no prices
+cumbia_06,Bandeja de Pisa,,22,food,bilingual Spanish/English; spelled as on menu
+cumbia_06,Paisita,,18,food,
+cumbia_06,Cazuela Paisa,,13.5,food,
+cumbia_06,Carne Asada,,15,food,
+cumbia_06,Carne Encebollada,,15,food,
+cumbia_06,Carne Salteada,,15,food,
+cumbia_06,Churrasco,,25,food,
+cumbia_06,Bistec a Caballo,,16,food,
+cumbia_06,Lengua a la Plancha o Criolla,,13,food,
+cumbia_06,Lengua Encebollada,,13,food,
+cumbia_06,Sobrebarriga a la Plancha,,14,food,
+cumbia_06,Sobrebarriga a la Criolla,,14,food,
+cumbia_06,Sobrebarriga Encebollada,,14,food,
+cumbia_06,Hígado a la Plancha,,13,food,
+cumbia_06,Hígado a la Criolla,,13,food,
+cumbia_06,Hígado Salteado,,13,food,
+cumbia_06,Hígado Encebollado,,13,food,
+cumbia_06,Lomo de Cerdo a la Plancha,,13,food,
+cumbia_06,Lomo de Cerdo Empanizado,,13,food,
+cumbia_06,Lomo de Cerdo Salteado,,13,food,
+cumbia_06,Pechuga a la Plancha,,12,food,
+cumbia_06,Pechuga Empanizada,,14,food,
+cumbia_06,Pechuga Salteada,,14,food,
+cumbia_06,Pechuga en Champiñones,,14,food,
+cumbia_06,Ensalada de Pollo,,9,food,
+cumbia_06,Arroz con Pollo,,13,food,
+cumbia_06,Picada Mixta,,16,food,
+cumbia_06,Chaufa Mixto,,17,food,
+cumbia_06,Punta de Anca,,22,food,
+cumbia_06,Punta de Anca con Camarones,,28,food,
+cumbia_06,Churrasco con Camarones,,28,food,
+mattarello_17,Lobster Tail,,,food,chalkboard; no prices; Piña Colada starburst is a flavor
+mattarello_17,Bombolone,,,food,
+mattarello_17,Torta della Nona,,,food,
+mattarello_17,Italian Cheesecake,,,food,
+juans_12,Egg and cheese sandwich,,4,food,cents printed as superscript
+juans_12,Breakfast sandwich,,6,food,
+juans_12,Pancakes or French toast (3 Pcs),,6,food,
+juans_12,Add Toppings,,2,modifier,Fruit/Meat/Chocolate Chips
+juans_12,"2 Eggs, Home fries, toast",,6,food,
+juans_12,Add any meat,,2,modifier,
+juans_12,Breakfast Burrito,,7,food,
+juans_12,Any Omelettes,,9.5,food,
+juans_12,Plain Bagel,,1.25,food,
+juans_12,Butter Bagel,,2,food,
+juans_12,Jelly Bagel,,2,food,
+juans_12,Butter & Jelly Bagel,,2.5,food,
+juans_12,Peanut Butter & Jelly,,3,food,
+juans_12,Regular Cream Cheese Bagel,,2.75,food,
+juans_12,Flavor Cream Cheese,,3.75,food,
+juans_12,Empanadas,,2.5,food,Chicken/Vegetables/Beef/Ham & Cheese/Cheese
+juans_12,Tamales,,2.5,food,only Saturday
+juans_12,Original Tacos (4Pcs),,12,food,
+juans_12,Quesadillas,,12,food,Beef/Chicken/Vegetables
+juans_12,Gyro Platter,,9.5,food,
+juans_12,Falafel Platter,,9.5,food,
+juans_12,Grilled Chicken,,9.5,food,
+juans_12,Chicken Teriyaki,,9.5,food,
+juans_12,Fish & Chips,,13,food,
+juans_12,Plain Cheeseburger,,3.75,food,
+juans_12,Plain Veggie Burger,,3.75,food,
+juans_12,Chilli Cheeseburger,,4.5,food,
+juans_12,California Cheeseburger,,5.25,food,
+juans_12,Cheeseburger Deluxe,,11.5,food,
+juans_12,Reuben Burger,,5.25,food,
+juans_12,Any Triple Decker,,11.5,food,
+juans_12,BLT Sandwich,,5.75,food,
+juans_12,Mozarella sticks (6Pcs),,6.25,food,
+juans_12,French fries,Small,2.75,food,
+juans_12,French Fries,Large,3.75,food,
+juans_12,Chicken Finger (5Pcs),,7,food,
+juans_12,Add Fries,,2,modifier,
+juans_12,Onion Rings,,4.75,food,
+juans_12,Macaroni & Cheese,,3,food,
+juans_12,Potatoe Ball,,3.5,food,spelled as on menu
+juans_12,6 Pcs Wings,,6.5,food,
+juans_12,12 Pcs Wings,,13,food,
+juans_12,Cheese Fries,,4.75,food,
+juans_12,Chilli Cheese Fries,,5.75,food,
+juans_12,Wrap or Sandwich,Long Italian bread,9,food,price set by bread; fillings listed without prices
+juans_12,Wrap or Sandwich,Round Roll / Sliced bread,7,food,
+juans_12,Gyro Sandwich,,8,food,
+juans_12,Long Italian bread w/ Shrimp,,11,food,
+juans_12,Round Roll / Sliced bread w/ Shrimp,,9,food,
+juans_12,"Spaghetti, Linguini, Ziti",,9.95,food,
+juans_12,Penne Vodka or Fettucine Alfredo,,12,food,
+juans_12,Penne Vodka or Fettucine Alfredo w/ Chicken,,15,food,
+juans_12,Penne Vodka or Fettucine Alfredo w/ Shrimp,,17,food,
+juans_12,Meat Lasagna,,15,food,
+juans_12,Baked Ziti,,12,food,
+juans_12,Stuffed Shells,,12,food,
+juans_12,Chicken Francese,,15,food,
+juans_12,Chicken Parmensan,,15,food,spelled as on menu
+juans_12,Sausage Parmensan,,15,food,
+juans_12,Meat Balls Parmesanv,,15,food,spelled as on menu
+juans_12,Egg Plant Parmesan,,15,food,
+juans_12,Shrimp Parmesan,,17,food,
+mercado_21,Grilled Linguiça Sausage,,12,food,no $ sign on menu
+mercado_21,Serrano Pan con Tomate,,13,food,
+mercado_21,Chicken Fry,,11,food,
+mercado_21,Garden Sandwich - V,,11,food,
+mercado_21,Albacore,,12,food,
+mercado_21,BLTA,,11,food,
+mercado_21,Mercado Burger,,14,food,
+mercado_21,Tarragon Walnut,,12,food,
+mercado_21,Mozzarella and Prosciutto,,12,food,
+mercado_21,Smoked Turkey and Havarti,,9,food,
+mercado_21,Black Forest Ham and Brie,,9,food,
+mercado_21,Roast Beef and Havarti,,10,food,
+mercado_21,Blackened Chicken,,12,food,
+mercado_21,Roast Beef and Gouda,,11,food,
+mercado_21,Smoked Turkey and Goat,,12,food,
+thewave_08,Salami Power,,,food,no prices
+thewave_08,X-Tudo Sandwich,,,food,
+thewave_08,Deli Your Way,,,food,
+thewave_08,The Garden Girl,,,food,
+thewave_08,Elote Avocado Toast,,,food,
+thewave_08,Avocado Toast,,,food,
+thewave_08,Wake Up Wrap,,,food,
+thewave_08,Chicken Caesar Wrap,,,food,
+thewave_08,Chopped Cheese,,,food,
+vicentes_04a,Chicken Cutlet,,,food,no prices; LATTE wall art is decor
+vicentes_04a,Traditional,,,food,
+vicentes_04a,Buffalo Chicken,,,food,
+vicentes_04a,Tuna Melt,,,food,
+vicentes_04a,Chicken Caesar,,,food,
+vicentes_04a,Mediterranean,,,food,
+vicentes_04a,Veggie Heart,,,food,
+vicentes_04a,Pesto,,,food,CHECK - cut off at right edge
+vicentes_04a,Turkey Farm,,,food,
+vicentes_04a,Campesino,,,food,
+vicentes_04a,Fantasy,,,food,
+barbaras_01,Ham and Cheese,,6.5,food,
+barbaras_01,David's Sandwich,,8,food,
+barbaras_01,American Plate,,8.5,food,
+barbaras_01,Prego no Pão,,8,food,
+barbaras_01,Beka's Sandwich,,10.5,food,
+barbaras_01,Bread w/ Brazilian Cream Cheese,,4,food,
+barbaras_01,Bread w/ Butter,,2,food,
+barbaras_01,Bread w/ Egg,,4.5,food,
+barbaras_01,Avocado Toast,,13.5,food,
+barbaras_01,Plain Croissant,,2.5,food,
+barbaras_01,Croissant w/ Nutella,,7.5,food,
+barbaras_01,Add Strawberry,,1,modifier,
+barbaras_01,Portuguese Croissant,,3.5,food,
+barbaras_01,Gluten-Free Sliced Bread,,1.5,food,
+barbaras_01,Portuguese Style Bread w/ Butter,,4,food,
+barbaras_01,Barbara's Croissant,,16,food,
+barbaras_01,3 Plain Eggs,,7.5,food,omelette
+barbaras_01,Omelette Additional,,1,modifier,Cheese/Ham/Heart of Palm/Tomato/Onions/Bacon/Spinach
+barbaras_01,Omelette Additional Chicken,,1.5,modifier,
+barbaras_01,Juan's - Chicken Layered Potato,,14.5,food,
+barbaras_01,Gabriel's - Beef Layered Potato,,16,food,
+barbaras_01,Leo's - Vegetable Layered Potato,,13.5,food,
+barbaras_01,Jacob's - Steak Sandwich,,17,food,
+barbaras_01,Crispy Chicken Caesar Sandwich,,16,food,
+barbaras_01,Smoked Salmon Toast,,14.5,food,
+barbaras_01,Spaghetti,,8.5,food,Alfredo or Tomato Sauce
+barbaras_01,Spaghetti Protein: Chicken or Steak,,5.5,modifier,
+barbaras_01,Spaghetti Protein: Shrimp,,6.5,modifier,
+barbaras_01,Gnocchi,,15.5,food,
+barbaras_01,Add Ground Beef,,4.5,modifier,
+barbaras_01,Bruno's - Polpetone,,16,food,
+barbaras_01,Cheese Burger with Fries,,10.5,food,
+barbaras_01,Add Bacon,,1,modifier,
+barbaras_01,Side of Fries,,4.5,food,
+barbaras_01,Pizza Empanada,,8.5,food,
+barbaras_01,Chicken w/ Brazilian Cream Cheese Empanada,,8.5,food,
+barbaras_01,Ground Beef w/ Cheese Empanada,,8.5,food,
+barbaras_01,Carne Seca w/ Brazilian Cream Cheese Empanada,,9,food,
+barbaras_01,Cheese Empanada,,7.5,food,
+barbaras_01,Chicken Salad,,12.5,food,CHECK - glare
+barbaras_01,Steak Salad,,14.5,food,CHECK - glare
+barbaras_01,Tropical Salad,,10.5,food,
+barbaras_01,Soup of The Day,,5.5,food,CHECK - glare
+barbaras_01,Crème Brûlée,,6.5,food,
+barbaras_01,Carrot Mini Vulcao Cake,,6.5,food,
+barbaras_01,Barbara's Special,,9,food,
+barbaras_01,Cake of the Day,,5.5,food,
+barbaras_01,Açai,,9.5,food,dessert
+barbaras_01,Add Topping,,1,modifier,Granola/Banana/Strawberry/Pineapple/Cherry/Paçoca/Nutella/Condensed Milk/Milk Powder/Chocolate Drops/Peanut Butter
+minas_03,Borda Recheada,Small,2,modifier,stuffed crust (Catupiry or cheese); one price shared by small and medium
+minas_03,Borda Recheada,Medium,2,modifier,
+minas_03,Borda Recheada,Large,4,modifier,one price shared by large and extra large
+minas_03,Borda Recheada,Extra Large,4,modifier,
+minas_03,Minas Pizza,Small,15.99,food,
+minas_03,Minas Pizza,Medium,17.99,food,
+minas_03,Minas Pizza,Large,21.99,food,
+minas_03,Minas Pizza,Extra Large,25.99,food,
+minas_03,Mussarela,Small,8.99,food,
+minas_03,Mussarela,Medium,11.99,food,
+minas_03,Mussarela,Large,12.99,food,
+minas_03,Mussarela,Extra Large,14.99,food,
+minas_03,Pepperoni,Small,9.99,food,
+minas_03,Pepperoni,Medium,12.99,food,
+minas_03,Pepperoni,Large,14.99,food,
+minas_03,Pepperoni,Extra Large,18.99,food,
+minas_03,Calabresa,Small,12.99,food,
+minas_03,Calabresa,Medium,14.99,food,
+minas_03,Calabresa,Large,18.99,food,
+minas_03,Calabresa,Extra Large,23.99,food,
+minas_03,Palmito,Small,12.99,food,
+minas_03,Palmito,Medium,14.99,food,
+minas_03,Palmito,Large,16.99,food,
+minas_03,Palmito,Extra Large,20.99,food,
+minas_03,Picanha Steak,Small,15.99,food,
+minas_03,Picanha Steak,Medium,17.99,food,
+minas_03,Picanha Steak,Large,21.99,food,
+minas_03,Picanha Steak,Extra Large,26.99,food,
+minas_03,Milho Verde,Small,10.99,food,
+minas_03,Milho Verde,Medium,12.99,food,
+minas_03,Milho Verde,Large,15.99,food,
+minas_03,Milho Verde,Extra Large,18.99,food,
+minas_03,Frango com Milho,Small,12.99,food,CHECK - large cents unclear
+minas_03,Frango com Milho,Medium,14.99,food,CHECK - large cents unclear
+minas_03,Frango com Milho,Large,18.99,food,CHECK - large cents unclear
+minas_03,Frango com Milho,Extra Large,22.99,food,CHECK - large cents unclear
+minas_03,Frango com Catupiry,Small,13.99,food,
+minas_03,Frango com Catupiry,Medium,15.99,food,
+minas_03,Frango com Catupiry,Large,18.99,food,
+minas_03,Frango com Catupiry,Extra Large,23.99,food,
+minas_03,Bacon,Small,13.99,food,
+minas_03,Bacon,Medium,15.99,food,
+minas_03,Bacon,Large,19.99,food,
+minas_03,Bacon,Extra Large,23.99,food,
+minas_03,Bacon com Milho,Small,14.99,food,
+minas_03,Bacon com Milho,Medium,16.99,food,
+minas_03,Bacon com Milho,Large,20.99,food,
+minas_03,Bacon com Milho,Extra Large,24.99,food,
+minas_03,4 Queijos,Small,14.99,food,
+minas_03,4 Queijos,Medium,17.99,food,
+minas_03,4 Queijos,Large,20.99,food,
+minas_03,4 Queijos,Extra Large,24.99,food,
+minas_03,Vegetariana,Small,13.99,food,
+minas_03,Vegetariana,Medium,15.99,food,
+minas_03,Vegetariana,Large,19.99,food,
+minas_03,Vegetariana,Extra Large,23.99,food,
+minas_03,Havaiana,Small,12.99,food,
+minas_03,Havaiana,Medium,14.99,food,
+minas_03,Havaiana,Large,18.99,food,
+minas_03,Havaiana,Extra Large,22.99,food,
+minas_03,Portuguesa,Small,14.99,food,
+minas_03,Portuguesa,Medium,16.99,food,
+minas_03,Portuguesa,Large,20.99,food,
+minas_03,Portuguesa,Extra Large,24.99,food,
+minas_03,Marguerita,Small,12.99,food,
+minas_03,Marguerita,Medium,14.99,food,
+minas_03,Marguerita,Large,18.99,food,
+minas_03,Marguerita,Extra Large,21.99,food,
+minas_03,Delicata,Small,14.99,food,
+minas_03,Delicata,Medium,16.99,food,
+minas_03,Delicata,Large,20.99,food,
+minas_03,Delicata,Extra Large,24.99,food,
+minas_03,Tropical,Small,14.99,food,
+minas_03,Tropical,Medium,18.99,food,
+minas_03,Tropical,Large,21.99,food,
+minas_03,Tropical,Extra Large,24.99,food,
+minas_03,Banana (Pizza Doce),Small,13.99,food,sweet pizza
+minas_03,Banana (Pizza Doce),Medium,15.99,food,sweet pizza
+minas_03,Banana (Pizza Doce),Large,18.99,food,sweet pizza
+minas_03,Banana (Pizza Doce),Extra Large,22.99,food,sweet pizza
+minas_03,Romeo e Julieta (Pizza Doce),Small,14.99,food,sweet pizza
+minas_03,Romeo e Julieta (Pizza Doce),Medium,16.99,food,sweet pizza
+minas_03,Romeo e Julieta (Pizza Doce),Large,20.99,food,sweet pizza
+minas_03,Romeo e Julieta (Pizza Doce),Extra Large,23.99,food,sweet pizza
+minas_03,Prestigio (Pizza Doce),Small,14.99,food,sweet pizza
+minas_03,Prestigio (Pizza Doce),Medium,16.99,food,sweet pizza
+minas_03,Prestigio (Pizza Doce),Large,19.99,food,sweet pizza
+minas_03,Prestigio (Pizza Doce),Extra Large,21.99,food,sweet pizza
+minas_03,Morango (Pizza Doce),Small,14.99,food,sweet pizza
+minas_03,Morango (Pizza Doce),Medium,16.99,food,sweet pizza
+minas_03,Morango (Pizza Doce),Large,19.99,food,sweet pizza
+minas_03,Morango (Pizza Doce),Extra Large,21.99,food,sweet pizza
+minas_03,Docinhos Variados,,2.75,food,cents as superscript throughout
+minas_03,Bombons Variados,,3.5,food,
+minas_03,Pao de Mel,,3.75,food,
+minas_03,Pudim,,3.5,food,
+minas_03,Carolina,,2.2,food,
+minas_03,Curau Grande,,6.35,food,CHECK - faded print
+minas_03,Curau Peq,9oz,3.75,food,CHECK - faded print
+minas_03,Mousses Diversos,,5.75,food,CHECK - faded print
+minas_03,Pedaço de Bolo,,6.5,food,CHECK - faded print
+minas_03,Arroz Doce,,3.7,food,CHECK - faded print
+minas_03,Manjar,,3.75,food,CHECK - faded print
+minas_03,Brigadeirão,,3.75,food,CHECK - faded print
+minas_03,Canjicão/Canjica/Munguza,,4,food,CHECK - faded print
+minas_03,Bolo no Copo,,6.5,food,CHECK - faded print
+minas_03,Brazilian Hot Dog,,6.5,food,
+minas_03,Americano,,3,food,American hot dog - NOT coffee
+minas_03,Sopa do Dia,PQ,4.75,food,daily soup small
+minas_03,Sopa do Dia,GD,6,food,daily soup large
+minas_03,Chicken Fingers,,8.5,food,served with fries
+minas_03,Buffalo Wings,,9,food,served with fries
+minas_03,Batata com Queijo,PQ,4.5,food,fries with cheese
+minas_03,Batata com Queijo,GD,5,food,
+minas_03,Batata Frita,PQ,3,food,
+minas_03,Batata Frita,GD,4,food,
+minas_03,Batata com Queijo e Bacon,PQ,6,food,
+minas_03,Batata com Queijo e Bacon,GD,7.25,food,
+minas_03,Açaí Tigela,20oz,12.5,food,1 topping
+minas_03,Açaí Copo,12oz,8,food,1 topping
+minas_03,Açaí Copo,16oz,9.75,food,1 topping
+minas_03,Cremes e Diversos Toppings,,1,modifier,each; cupuaçu/passion fruit/strawberry/ninho milk
+lafontaine_15,Simit with Eggs,,14.95,food,
+lafontaine_15,Sweet Simit,,14.95,food,
+lafontaine_15,Egg & Four Cheese Sandwich,,15.95,food,
+lafontaine_15,Sucuk Sandwich,,17.75,food,
+lafontaine_15,Organic Chicken Chipotle Sandwich,,18.5,food,
+lafontaine_15,Doner Sandwich,,19.95,food,
+lafontaine_15,Falafel Sandwich,,16.95,food,
+lafontaine_15,Vegan Tofu Sandwich,,16.95,food,
+lafontaine_15,Fruit Crepe with Nutella,,16.95,food,
+lafontaine_15,Canolli Creme Crepe,,16.95,food,spelled as on menu
+lafontaine_15,Egg & Cheese Crepe,,16.95,food,
+lafontaine_15,Spinach & White Cheese Crepe,,16.95,food,
+lafontaine_15,Macaroons Box of 6,,15.5,food,
+lafontaine_15,Pistachio Baklava of 3,,11.25,food,
+mauro_10,Pastel de Nata,,2,food,
+mauro_10,Pastel de Nata w/ nutella,,2.5,food,
+mauro_10,Tosta Mista,,6,food,
+mauro_10,Tosta Mista on Croissant,,6.5,food,
+mauro_10,Grilled Cheese,,5,food,
+mauro_10,Grilled Cheese on Croissant,,5.5,food,
+mauro_10,Butter roll,,1.5,food,
+mauro_10,Torrada/Toast,,1.75,food,
+mauro_10,"Ham,Egg,Cheese",Portuguese Roll,6.75,food,
+mauro_10,"Ham,Egg,Cheese",Croissant,7,food,
+mauro_10,"Taylor Ham,Egg,Cheese",Portuguese Roll,6,food,
+mauro_10,"Taylor Ham,Egg,Cheese",Croissant,7.5,food,
+mauro_10,Grilled Chicken Sandwich,,8,food,
+mauro_10,Pork steak/Bifana,,8,food,
+mauro_10,Grilled Steak/Prego no Pão,,10,food,
+mauro_10,Add egg,,1,modifier,
+mauro_10,Toppings,,0.75,modifier,each; written as 75¢
+mauro_10,Everything,,2.5,modifier,all toppings
+mauro_10,Tuna Sandwich,,7.25,food,
+mauro_10,Tuna Sandwich w/cheese,,8,food,
+mauro_10,House Salad w/Chicken,,11.5,food,
+mauro_10,House Salad w/Streak,,12.5,food,spelled as on menu
+mauro_10,House Salad w/Tuna,,11,food,written as $11:00
+mauro_10,House Salad w/Pork,,12,food,
+honey_13,Nutella Strawberries,,10,food,crepe or waffle
+honey_13,Lotus & White Chocolate Bananas,,11,food,
+honey_13,Oreo chocolate Strawberries,,11,food,
+honey_13,Pistachio & White Chocolate Bananas,,13,food,
+honey_13,Cheesecake Bites Strawberries (Nutella),,15,food,
+honey_13,Dubai (Nutella & pistachio drizzle),,15,food,
+honey_13,Build your own,,8,food,
+honey_13,Topping,,1,modifier,M&M's/Oreos/Strawberries/Bananas
+honey_13,Pistachios,,2,modifier,topping
+honey_13,Cheesecake Bites,,2,modifier,topping
+honey_13,Drizzle,,1,modifier,Nutella/White Chocolate/Milk Chocolate/Lotus Biscoff/Dulce De Leche/Oreo/Honey/Pistachio
+honey_13,Waffle Stick,,8,food,Dubai/Lotus/Classic
+honey_13,Strawberry Stick,,8,food,
+honey_13,Brownie Stick,,7,food,
+honey_13,Strawberry Cup,,15,food,Dubai viral creation
+honey_13,Dubai Chocolate Bar,,8,food,
+natas_09,Açai Bowl,,10,food,shares names with smoothies - check category
+natas_09,Pitaya Bowl,,11,food,
+natas_09,Açai & Pitaya Combo Bowl,,11,food,
+natas_09,Super Green Bowl,,11,food,
+natas_09,Coconut Bowl,,11,food,
+natas_09,Strawberry Banana Bowl,,11,food,
+natas_09,Chocolate Berry Bowl,,12,food,
+natas_09,Nutella Açai Bowl,,11.5,food,
+natas_09,Chia Seeds,,0.5,modifier,bowl topping; 50¢
+natas_09,Condensed Milk,,1,modifier,bowl topping (differs from smoothie add-on price)
+natas_09,Cacao Nibs,,1,modifier,bowl topping
+natas_09,Coconut Flakes,,0.5,modifier,bowl topping
+natas_09,Dark Chocolate Shavings,,1,modifier,bowl topping
+natas_09,Honey,,0.5,modifier,bowl topping
+natas_09,Agave,,0.5,modifier,bowl topping
+natas_09,Dry Milk,,0.5,modifier,bowl topping
+natas_09,M&M's,,0.5,modifier,bowl topping
+natas_09,Goji Berries,,1,modifier,bowl topping
+natas_09,Reese's PB Cups Crumbles,,1,modifier,bowl topping
+natas_09,Oreo Crumbles,,1,modifier,bowl topping
+natas_09,Extra Fruit Serving,,0.5,modifier,bowl topping
+natas_09,Extra Granola,,1,modifier,bowl topping
+natas_09,Nutella,,1.5,modifier,bowl topping (differs from smoothie add-on price)
+natas_09,Peanut Butter,,1.5,modifier,bowl topping
+natas_09,Chocolate Cupcake Brownie,,2,food,
+natas_09,Spinach & Feta Baked Pastry,,3.5,food,
+natas_09,Chocolate Chip Muffin,,2.25,food,
+natas_09,Corn Muffin,,2.25,food,CHECK - glare
+natas_09,Blueberry Muffin,,2.25,food,
+natas_09,Nutella Croissant,,5,food,
+natas_09,Tosta Mista,,6.5,food,
+natas_09,Turkey Mista,,6.5,food,
+natas_09,Chicken Mista,,6.5,food,
+natas_09,Tuna Melt,,8,food,
+natas_09,Tuna Sandwich,,7.25,food,
+natas_09,Grilled Cheese,,5,food,CHECK - description hidden by glare
+natas_09,Nutella Sandwich,,4,food,CHECK - glare over cents
+natas_09,Nutella & Peanut Butter Sandwich,,4.5,food,
+natas_09,Traditional Nata,,2,food,
+natas_09,Nutella Nata,,2.25,food,
+natas_09,Oreo Nata,,2.5,food,seasonal only
+natas_09,Pumpkin Spice Nata,,2.5,food,seasonal
+natas_09,Peanut Butter Cup Nata,,2.5,food,seasonal
+natas_09,Strawberry & Nutella Nata,,2.5,food,seasonal
+coastcafe_16,Pastafrola,,6.75,food,fillings: Dulce de Leche/Quince (Membrillo)/Sweet Potato (Batata)
+coastcafe_16,Alfajores,,3,food,$3 each
+waterbar_20,Prosciutto Mozzarella Jam,,13,food,
+waterbar_20,Classic Chicken Salad,,13,food,
+waterbar_20,Caprese Sandwich,,11,food,
+waterbar_20,Blue Majik Bites,,7.5,food,
+waterbar_20,Honey Oat Bites,,7.5,food,
+waterbar_20,Banana Bread Overnight Oats,,5.5,food,
+waterbar_20,Raspberry Walnut Chia,,7.5,food,
