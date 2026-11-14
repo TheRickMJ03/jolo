@@ -47,6 +47,58 @@ common:
   eval:
     name_match_threshold: 85   # RapidFuzz token_set_ratio
 
+  # ---------- The agent (Bhavesh). The menu reader ignores this section. ----------
+  agent:
+    endpoint: null             # null = the profile's endpoint (the same vLLM server as the reader)
+    model: qwen3.5-9b
+    # How the agent asks the model for tool calls:
+    #   native  OpenAI "tools" (vLLM needs --enable-auto-tool-choice and --tool-call-parser)
+    #   json    the model writes one JSON action as plain text; works on any server
+    #   auto    try native, fall back to json when the server refuses tools
+    # json: with the server's native tool calling on (qwen3_coder parser), the 30
+    # scripted conversations scored 19/30; in json mode 26/30 (agent_eval/run_conversations.py).
+    tool_mode: json
+    temperature: 0
+    max_tokens: 700
+    timeout_seconds: 120
+    max_tool_rounds: 5         # model -> tools -> model ... at most this many times per message
+    history_turns: 6           # earlier messages kept per phone number
+    timezone: America/New_York # for "open now"
+
+    store:
+      backend: memory          # memory (a JSON file) | firestore
+      path: data/store.json    # memory backend only; in .gitignore
+      firestore_credentials_env: GOOGLE_APPLICATION_CREDENTIALS   # path to the service-account key
+    # Phone numbers are stored as salted hashes; the salt is JOLO_PHONE_SALT in .env.
+
+    api:
+      host: 127.0.0.1          # 0.0.0.0 to let Isaiah's Mac reach it; then set JOLO_API_KEY
+      port: 8080               # 8000 is the SSH tunnel to the model server
+      callback_url: null       # late replies are POSTed here; null = Isaiah polls GET /outbox
+      api_key_env: JOLO_API_KEY
+
+    reads:
+      workers: 2               # menu photos read at the same time
+
+    confirm:
+      items_per_message: 5     # how many items the owner is asked to check at once
+      name_match_threshold: 80 # RapidFuzz: how close an owner's wording must be to an item name
+
+    search:
+      index_dir: data/index    # LanceDB files; in .gitignore
+      models_dir: models/hf    # Hugging Face downloads go here, not to the C: drive
+      embedding_model: Qwen/Qwen3-Embedding-0.6B
+      reranker_model: Qwen/Qwen3-Reranker-0.6B
+      use_embeddings: true     # false = keyword search (BM25) only
+      use_reranker: true
+      candidates: 50           # hits kept from keyword + vector search
+      rerank_top: 8            # cafés the reranker scores; about 0.4 s each on a laptop CPU
+      results: 5               # cafés handed to the agent
+      max_miles: 5.0           # "within distance" when the customer gives a place
+      bandit:
+        enabled: false         # Thompson sampling on top of the ranking; on in the simulation
+        weight: 0.15
+
 profiles:
   laptop_cpu:
     # Ollama's OpenAI-compatible endpoint.
