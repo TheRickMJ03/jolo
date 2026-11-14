@@ -20,14 +20,10 @@ pandas==3.1.1
 PyYAML==6.0.2
 rapidfuzz==3.14.6
 scipy==1.18.1
+
 # Talking to model endpoints (already installed as a PaddleOCR dependency)
 requests==2.34.2
-# Agent (jolo_agent)
-httpx
-fastapi
-langchain-core
-langgraph
-openai
+
 # Light OCR on CPU. PP-OCRv6 is the default model family from paddleocr 3.7.
 paddleocr==3.7.0
 paddlex==3.7.2
