@@ -1,14 +1,73 @@
-# Python
-.venv/
-venv/
-__pycache__/
-*.pyc
-.pytest_cache/
+# ---- OS ----
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
 
-# Secrets: keys and tokens never go in Git
+# ---- Editors / IDEs ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# ---- Env / secrets ----
 .env
+.env.*
+!.env.example
 *.pem
 *.key
+secrets.*
+
+# ---- Logs ----
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Node ----
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+.cache/
+*.tsbuildinfo
+.pnpm-store/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+htmlcov/
+.coverage
+.coverage.*
+
+# ---- Misc ----
+tmp/
+temp/
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# ---- Menu reader (Python, repo root) ----
 hf_token*
 
 # Model weights and caches
@@ -30,11 +89,19 @@ eval/results/
 output/
 demo/
 
-# Editors and OS
-.vscode/
-.idea/
 .claude/
-Thumbs.db
-.DS_Store
-
 OllamaSetup.exe
+
+# ---- Agent / brain (Bhavesh) ----
+# Local store and search index; rebuilt by scripts/seed_store.py and scripts/build_index.py
+data/store.json
+data/store.tmp
+data/index/
+agent_eval/results/
+# Firebase / Google Cloud service-account keys (agent.store.backend: firestore)
+serviceAccount*.json
+service-account*.json
+firebase-adminsdk*.json
+*-firebase-adminsdk-*.json
+google-credentials*.json
+credentials.json

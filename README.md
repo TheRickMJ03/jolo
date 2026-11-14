@@ -1,126 +1,91 @@
-# Jolo Menu Reader
+# JOLO
 
-A Python tool that extracts structured information from menu images using AI and OCR.
+![JOLO](docs/design/logo.svg)
 
-## Features
+> Hackathon project. **Café owners text a photo of their menu; JOLO reads it, confirms the changes, and keeps the menu current everywhere. Customers text JOLO to ask what's on the menu.**
 
-- Extract menu items, categories, and prices from images.
-- Support JPG, PNG, WebP, and HEIC formats.
-- Compare menus to identify new items and price changes.
-- Process multiple images of the same menu.
-- Export results as structured JSON.
+This repo holds the whole project. It started as Ricardo's menu reader; Isaiah's iMessage bridge, owner app and product docs were merged in beside it.
 
-## Project Structure
+## Who owns what
 
-```text
-jolo-menu-reader/
-├── api/
-├── demo/
-├── docs/
-├── eval/
-├── menu_reader/
-├── output/
-├── scripts/
-├── tests/
-├── config.yaml
-├── requirements.txt
-└── README.md
+| | Owner | What | In this repo |
+|---|---|---|---|
+| 👁️ **Eyes** | Ricardo | Photo → menu data: intake, read (Qwen3.5-9B with vision), validate, confidence, compare and merge, evaluation | [`menu_reader/`](menu_reader) ([README](menu_reader/README.md)), [`eval/`](eval), [`scripts/`](scripts), [`tests/`](tests), `config.yaml` |
+| 🗣️ **Voice and Face** | Isaiah | iMessage connection, conversation design, the JOLO owner app, design and product | [`spectrum-archive-app/`](spectrum-archive-app), [`jolo-app/`](jolo-app), [`docs/`](docs) |
+| 🧠 **Brain** | Bhavesh | Agent (tool calling), Firestore and search index, model serving on AWS, owner insights | not in this repo yet; it builds to [`docs/contracts.md`](docs/contracts.md) §2 |
+
+```
+Owner / Customer
+      │ iMessage (photos + text)
+      ▼
+spectrum-archive-app ── onboarding, wording, wait message, pending questions, archive    (Isaiah)
+      │ POST /v1/turn  { sender.handle, event: message | scope | confirm | correction }
+      ▼
+Agent ── find_cafe_by_phone · extract_menu · merge_results · get_menu · save_menu_version (Bhavesh)
+      │                      │
+      │                      └──▶ menu_reader: open · read · validate · confidence · compare (Ricardo)
+      │                                  │ HTTP
+      │                                  └──▶ Qwen3.5-9B on the GPU VM (vLLM, port 8000)
+      ▼
+Firestore  cafes/{id} · menuVersions/{n} · insights/{week}   ◀── jolo-app (owner dashboard, live) (Isaiah)
 ```
 
-## Installation
+## Documents
 
-Clone the repository:
+| Read this | For |
+|---|---|
+| [`docs/team-responsibilities.md`](docs/team-responsibilities.md) | Who owns what, as a chart |
+| [`docs/menu-update-flow.md`](docs/menu-update-flow.md) | One menu update, step by step, across the team |
+| [`docs/integration-guide.md`](docs/integration-guide.md) | Ricardo's checklist for connecting the agent and the interface to the reader |
+| [`docs/contracts.md`](docs/contracts.md) | The interfaces: Firestore schema, bridge ↔ agent (`POST /v1/turn`), agent ↔ reader |
+| [`docs/conversation-design.md`](docs/conversation-design.md) | Everything JOLO says over iMessage, and when |
+| [`docs/test-flow.md`](docs/test-flow.md) | How to test it, stage by stage, from unit tests to a real text message |
+| [`docs/model-plan.md`](docs/model-plan.md) | The team's model plan |
+| [`docs/product.md`](docs/product.md), [`docs/design/brand.md`](docs/design/brand.md) | User stories, business model, sponsor prizes, brand |
+| [`docs/trends-and-insights.md`](docs/trends-and-insights.md) | The data scraper: owner Insights, customer trends, and how to run the job |
+| [`docs/drink-recommendations.md`](docs/drink-recommendations.md) | User side: taste, scrape, and drink cards from the live menu |
+| [`menu_reader/README.md`](menu_reader/README.md) | The menu reader's full reference, results and known limits |
+
+## Quick start
+
+### Menu reader (Python, from the repo root)
 
 ```bash
-git clone <repository-url>
-cd jolo-menu-reader
+python -m venv .venv && source .venv/bin/activate
+python -m pip install paddlepaddle==3.2.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+python -m pip install -r requirements.txt
+python -m pytest -q                # needs no model server
 ```
 
-Create a virtual environment:
+Reading a real photo needs the Qwen server; see [`menu_reader/README.md`](menu_reader/README.md).
+
+### iMessage bridge (no credentials needed)
+
+Run the bridge in the terminal against the stand-in agent. Start the stub first:
 
 ```bash
-python -m venv .venv
+cd spectrum-archive-app && npm install && npm run agent:stub
 ```
 
-Activate it:
+Then, in a second terminal:
 
 ```bash
-# Windows Git Bash
-source .venv/Scripts/activate
-
-# Linux / macOS
-source .venv/bin/activate
+cd spectrum-archive-app && AGENT_URL=http://127.0.0.1:8788 npm start
 ```
 
-Install dependencies:
+Real iMessage needs `PROJECT_ID`/`PROJECT_SECRET` from Photon; see [`spectrum-archive-app/README.md`](spectrum-archive-app/README.md).
 
-```bash
-pip install -r requirements.txt
-```
+### Owner app
 
-## Usage
+See [`jolo-app/README.md`](jolo-app/README.md). It needs a development build and a Firebase project, or the local emulators with Java 21.
 
-Extract information from a menu image:
+## Still to agree as a team
 
-```python
-from menu_reader.pipeline import extract_menu
+- [x] **Firestore as the main database.**
+- [ ] **The menu item format.** Proposal: Firestore stores the reader's item shape as it is (`section`, `item`, `category`, `prices[{size, usd}]`, `confidence`), plus `id` and `available`. See [`docs/contracts.md`](docs/contracts.md) §1.
+- [ ] **The bridge ↔ agent contract** (`POST /v1/turn`), so Bhavesh can build to it.
+- [ ] **iMessage transport.** The bridge uses Photon's Spectrum Cloud. [`docs/model-plan.md`](docs/model-plan.md) asks for the local iMessage Kit so no message leaves our hardware. Pick one before the pitch claims "our own hardware".
+- [ ] **Where the agent runs,** one Qwen server or two, and where owner corrections are stored (questions at the end of [`docs/integration-guide.md`](docs/integration-guide.md)).
+- [ ] **Which sponsor prizes to go for.** See [`docs/product.md`](docs/product.md#sponsor-prizes).
 
-result = extract_menu("menu.jpg")
-
-# Get structured results
-menu_data = result.model_dump()
-
-print(menu_data)
-```
-
-Compare a menu with an existing menu:
-
-```python
-result = extract_menu(
-    "menu.jpg",
-    current_menu=existing_menu
-)
-
-print(result.changes)
-```
-
-Process multiple menu images:
-
-```python
-from menu_reader.pipeline import extract_menu
-from menu_reader.merge import merge_results
-
-results = [
-    extract_menu("menu1.jpg"),
-    extract_menu("menu2.jpg")
-]
-
-menu = merge_results(results)
-```
-
-## Model Configuration
-
-The project uses Qwen3.5-9B through vLLM for image processing and PP-OCRv6 for additional OCR-based confidence assessment.
-
-Configure the model server and other settings in `config.yaml`.
-
-A running model server is required for menu extraction.
-
-## Testing
-
-Run the test suite:
-
-```bash
-python -m pytest -q
-```
-
-## Documentation
-
-Additional documentation is available in the `docs/` directory.
-
-## Notes
-
-- Extraction results should be reviewed before updating an existing menu.
-- Missing items in a photo are not automatically considered deleted.
-- Processing time depends on image complexity and server performance.
-- Model credentials, private keys, and other sensitive information should never be committed to the repository.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the menu reader's tests, the bridge's and the app's checks, and the Firestore rules tests on every pull request.

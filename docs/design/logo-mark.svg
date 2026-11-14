@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="JOLO">
+  <title>JOLO mark: a coffee cup whose steam is a chat bubble</title>
+  <rect width="128" height="128" rx="28" fill="#2c1b17"/>
+  <!-- chat bubble rising like steam -->
+  <path d="M46 18h36a10 10 0 0 1 10 10v14a10 10 0 0 1-10 10H66l-9 8v-8H46a10 10 0 0 1-10-10V28a10 10 0 0 1 10-10z" fill="#fecf9c"/>
+  <circle cx="53" cy="35" r="3.5" fill="#2c1b17"/>
+  <circle cx="64" cy="35" r="3.5" fill="#2c1b17"/>
+  <circle cx="75" cy="35" r="3.5" fill="#2c1b17"/>
+  <!-- cup -->
+  <path d="M30 66h60v16a24 24 0 0 1-24 24h-12a24 24 0 0 1-24-24z" fill="#fcf9f8"/>
+  <path d="M90 72h4a10 10 0 0 1 0 20h-6" fill="none" stroke="#fcf9f8" stroke-width="6" stroke-linecap="round"/>
+  <rect x="26" y="108" width="68" height="6" rx="3" fill="#7a582f"/>
+</svg>

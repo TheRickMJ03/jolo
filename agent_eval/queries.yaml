@@ -1,0 +1,65 @@
+# 50 search queries with graded relevance, for agent_eval/run_search_eval.py.
+#
+# Grades: 3 = exactly what was asked for, 2 = a good answer, 1 = partly relevant.
+# A café that is not listed has grade 0.
+#
+# How these were labelled: by reading each café's item list (eval/ground_truth.csv)
+# and its invented vibe and summary (data/cafes.yaml). One pass, not double-checked,
+# and labelled by the same person who built the search, so treat the numbers as a
+# development aid. The vibe queries (41 to 50) are judged against demo data that
+# was made up, so they only show that the search can use such text.
+
+queries:
+  # ---------- a drink or a dish ----------
+  - {id: q01, query: "cortado", relevant: {barbaras: 3, coastcafe: 3, curiosity: 3, natas: 3, mauro: 3, sankofa: 3, skip-to-my-brew: 3, sweet-kitchen: 3}}
+  - {id: q02, query: "matcha latte", relevant: {coastcafe: 3, sweet-kitchen: 3, curiosity: 3, honey: 2, skip-to-my-brew: 2, 787cafe: 2}}
+  - {id: q03, query: "acai bowl", relevant: {natas: 3, curiosity: 3, minas: 3, barbaras: 2, vicentes: 1}}
+  - {id: q04, query: "bubble tea", relevant: {curiosity: 3}}
+  - {id: q05, query: "pastel de nata", relevant: {natas: 3, mauro: 3}}
+  - {id: q06, query: "cuban sandwich", relevant: {cortaditos: 3}}
+  - {id: q07, query: "empanadas", relevant: {barbaras: 3, juans: 3}}
+  - {id: q08, query: "croissant", relevant: {bluecafe: 3, barbaras: 3, natas: 2, mauro: 2}}
+  - {id: q09, query: "avocado toast", relevant: {thewave: 3, barbaras: 3}}
+  - {id: q10, query: "milkshake", relevant: {honey: 3, barbaras: 2}}
+  - {id: q11, query: "cold brew", relevant: {coastcafe: 3, 787cafe: 3, curiosity: 3, skip-to-my-brew: 3, sankofa: 3, sweet-kitchen: 3}}
+  - {id: q12, query: "flat white", relevant: {curiosity: 3, honey: 3, sankofa: 3, skip-to-my-brew: 3, sweet-kitchen: 3}}
+  - {id: q13, query: "chai latte", relevant: {sweet-kitchen: 3, sankofa: 3, honey: 2, skip-to-my-brew: 2}}
+  - {id: q14, query: "turkish coffee", relevant: {honey: 3, sweet-kitchen: 3}}
+  - {id: q15, query: "pizza", relevant: {minas: 3, barbaras: 1}}
+  - {id: q16, query: "steak dinner", relevant: {encanto: 3, cumbia: 3, barbaras: 1}}
+  - {id: q17, query: "fresh orange juice", relevant: {vicentes: 3, barbaras: 3, minas: 3}}
+  - {id: q18, query: "fruit smoothie", relevant: {vicentes: 3, lafontaine: 3, curiosity: 2, natas: 2, honey: 2}}
+  - {id: q19, query: "lemonade", relevant: {lafontaine: 3, coastcafe: 3, sweet-kitchen: 2, skip-to-my-brew: 2}}
+  - {id: q20, query: "bagel with cream cheese", relevant: {juans: 3}}
+  - {id: q21, query: "burger and fries", relevant: {juans: 3, barbaras: 3, mercado: 2}}
+  - {id: q22, query: "onigiri", relevant: {curiosity: 3}}
+  - {id: q23, query: "falafel", relevant: {lafontaine: 3, juans: 3}}
+  - {id: q24, query: "crepes", relevant: {lafontaine: 3}}
+  - {id: q25, query: "chicken wings", relevant: {juans: 3, minas: 3}}
+  - {id: q26, query: "hot chocolate", relevant: {barbaras: 3, curiosity: 3, coastcafe: 3, honey: 3, mauro: 3, natas: 3, sankofa: 3, sweet-kitchen: 3}}
+  - {id: q27, query: "tuna melt", relevant: {natas: 3, vicentes: 3, mauro: 2}}
+  - {id: q28, query: "pour over coffee", relevant: {787cafe: 3}}
+  - {id: q29, query: "gluten free bread", relevant: {bluecafe: 3, barbaras: 3}}
+  - {id: q30, query: "pasta", relevant: {juans: 3, barbaras: 3}}
+  - {id: q31, query: "cheesecake", relevant: {mattarello: 3, honey: 2}}
+  - {id: q32, query: "overnight oats", relevant: {waterbar: 3}}
+  - {id: q33, query: "frappe", relevant: {honey: 3, curiosity: 3, sweet-kitchen: 3}}
+  - {id: q34, query: "korean fried chicken", relevant: {curiosity: 3}}
+  - {id: q35, query: "tacos", relevant: {juans: 3}}
+  - {id: q36, query: "pumpkin spice", relevant: {curiosity: 3, natas: 3, vicentes: 2}}
+  - {id: q37, query: "gyro", relevant: {juans: 3, lafontaine: 2}}
+  - {id: q38, query: "espresso tonic", relevant: {sankofa: 3}}
+  - {id: q39, query: "iced latte with oat milk", relevant: {barbaras: 3, sweet-kitchen: 3, sankofa: 3, natas: 2, coastcafe: 2, curiosity: 2}}
+  - {id: q40, query: "prosciutto sandwich", relevant: {mercado: 3, waterbar: 3}}
+
+  # ---------- a vibe or a kind of place (judged against invented demo data) ----------
+  - {id: q41, query: "quiet place to study", relevant: {sweet-kitchen: 3, coastcafe: 3, bluecafe: 3, curiosity: 2, sankofa: 2, waterbar: 1}}
+  - {id: q42, query: "date night dinner", relevant: {encanto: 3, cumbia: 1}}
+  - {id: q43, query: "dog friendly spot with outdoor seating", relevant: {lafontaine: 3}}
+  - {id: q44, query: "healthy breakfast", relevant: {waterbar: 3, vicentes: 3, natas: 2, thewave: 1, barbaras: 1}}
+  - {id: q45, query: "dessert late at night", relevant: {honey: 3, minas: 2, juans: 1}}
+  - {id: q46, query: "brazilian food", relevant: {barbaras: 3, minas: 3}}
+  - {id: q47, query: "portuguese bakery", relevant: {mauro: 3, natas: 3}}
+  - {id: q48, query: "italian pastries", relevant: {mattarello: 3}}
+  - {id: q49, query: "specialty coffee for coffee nerds", relevant: {787cafe: 3, sankofa: 1}}
+  - {id: q50, query: "kid friendly coffee shop", relevant: {skip-to-my-brew: 3}}
