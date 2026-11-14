@@ -4,51 +4,61 @@
 
 > Hackathon project. **Café owners text a photo of their menu; JOLO reads it, confirms the changes, and keeps the menu current everywhere. Customers text JOLO to ask what's on the menu.**
 
+This repo holds the whole project. It started as Ricardo's menu reader; Isaiah's iMessage bridge, owner app and product docs were merged in beside it.
+
 ## Who owns what
 
 | | Owner | What | In this repo |
 |---|---|---|---|
+| 👁️ **Eyes** | Ricardo | Photo → menu data: intake, read (Qwen3.5-9B with vision), validate, confidence, compare and merge, evaluation | [`menu_reader/`](menu_reader) ([README](menu_reader/README.md)), [`eval/`](eval), [`scripts/`](scripts), [`tests/`](tests), `config.yaml` |
 | 🗣️ **Voice and Face** | Isaiah | iMessage connection, conversation design, the JOLO owner app, design and product | [`spectrum-archive-app/`](spectrum-archive-app), [`jolo-app/`](jolo-app), [`docs/`](docs) |
-| 🧠 **Brain** | Bhavesh | Agent (LangChain, tool calling), Firestore and search index, model serving on AWS, owner insights | not yet; the interface is [`docs/contracts.md`](docs/contracts.md) §2 |
-| 👁️ **Eyes** | Ricardo | Photo → menu JSON: intake, find the menu (SAM 3), read it (GLM-OCR), validate and compare | not yet; the interface is [`docs/contracts.md`](docs/contracts.md) §3 |
+| 🧠 **Brain** | Bhavesh | Agent (tool calling), Firestore and search index, model serving on AWS, owner insights | not in this repo yet; it builds to [`docs/contracts.md`](docs/contracts.md) §2 |
 
 ```
 Owner / Customer
       │ iMessage (photos + text)
       ▼
-spectrum-archive-app ── onboarding, wording, pending questions, Parquet archive          (Isaiah)
-      │ POST /v1/turn  { sender.handle, event: message | scope | confirm }
+spectrum-archive-app ── onboarding, wording, wait message, pending questions, archive    (Isaiah)
+      │ POST /v1/turn  { sender.handle, event: message | scope | confirm | correction }
       ▼
-Agent ── find_cafe_by_phone · extract_menu · get_menu · save_menu_version · search_cafes  (Bhavesh)
+Agent ── find_cafe_by_phone · extract_menu · merge_results · get_menu · save_menu_version (Bhavesh)
       │                      │
-      │                      └──▶ Menu reader: crop · read · validate · compare          (Ricardo)
+      │                      └──▶ menu_reader: open · read · validate · confidence · compare (Ricardo)
+      │                                  │ HTTP
+      │                                  └──▶ Qwen3.5-9B on the GPU VM (vLLM, port 8000)
       ▼
 Firestore  cafes/{id} · menuVersions/{n} · insights/{week}   ◀── jolo-app (owner dashboard, live) (Isaiah)
 ```
 
-## Isaiah's pieces
+## Documents
 
-| From the plan | Where it is | Status |
-|---|---|---|
-| **Photon: Agents in iMessage** | [`spectrum-archive-app`](spectrum-archive-app), built on Photon's Spectrum SDK, with iMessage through Spectrum Cloud | ✅ Built. Real iMessage needs `PROJECT_ID`/`PROJECT_SECRET`. |
-| **iMessage connection**: receive photos and texts, send replies | [`spectrum-archive-app/src/jolo/`](spectrum-archive-app/src/jolo): photos and captions are collected and sent to the agent; replies come back as actions | ✅ Tested end to end against a stub agent |
-| **Conversation design**: onboarding (name, owner or customer), "Full menu or part of it?", confirmation texts | [`docs/conversation-design.md`](docs/conversation-design.md), [`copy.ts`](spectrum-archive-app/src/jolo/copy.ts), [`parse.ts`](spectrum-archive-app/src/jolo/parse.ts) | ✅ Built |
-| **JOLO app**: login with phone number; owner dashboard with menu, edits and insights | [`jolo-app/`](jolo-app): phone sign-in plus email; live Menu, History, Insights and Account tabs; owner-only Firestore rules | ✅ Built and unit/screen tested. Needs Firebase console setup (see its README). |
-| **Design and product**: UI/UX, logo, colours, user stories, business model | [`docs/design/brand.md`](docs/design/brand.md), [`docs/design/logo.svg`](docs/design/logo.svg), [`docs/product.md`](docs/product.md) | ✅ Drafted |
-| **Salesforce · Capital One**: small-business owner tools | [`docs/product.md`](docs/product.md#sponsor-prizes) | ⚠️ Possible fit. **Check the prize criteria.** |
+| Read this | For |
+|---|---|
+| [`docs/team-responsibilities.md`](docs/team-responsibilities.md) | Who owns what, as a chart |
+| [`docs/menu-update-flow.md`](docs/menu-update-flow.md) | One menu update, step by step, across the team |
+| [`docs/integration-guide.md`](docs/integration-guide.md) | Ricardo's checklist for connecting the agent and the interface to the reader |
+| [`docs/contracts.md`](docs/contracts.md) | The interfaces: Firestore schema, bridge ↔ agent (`POST /v1/turn`), agent ↔ reader |
+| [`docs/conversation-design.md`](docs/conversation-design.md) | Everything JOLO says over iMessage, and when |
+| [`docs/model-plan.md`](docs/model-plan.md) | The team's model plan |
+| [`docs/product.md`](docs/product.md), [`docs/design/brand.md`](docs/design/brand.md) | User stories, business model, sponsor prizes, brand |
+| [`menu_reader/README.md`](menu_reader/README.md) | The menu reader's full reference, results and known limits |
 
-## Still to agree as a team
+## Quick start
 
-From the team chat, with Isaiah's proposals in [`docs/contracts.md`](docs/contracts.md):
+### Menu reader (Python, from the repo root)
 
-- [x] **Firestore as the main database.** The JOLO app already uses it, and Bhavesh's search index is built from it. The schema is proposed in §1.
-- [ ] **The menu JSON format** between Ricardo's reader and the agent: MenuItem with `priceCents`. _Open:_ per-field confidence.
-- [ ] **The bridge ↔ agent contract** (`POST /v1/turn`), so Bhavesh can build to it.
-- [ ] **Which sponsor prizes to go for.** See [`docs/product.md`](docs/product.md#sponsor-prizes).
+```bash
+python -m venv .venv && source .venv/bin/activate
+python -m pip install paddlepaddle==3.2.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+python -m pip install -r requirements.txt
+python -m pytest -q                # needs no model server
+```
 
-## Quick start (Isaiah's parts, no credentials needed)
+Reading a real photo needs the Qwen server; see [`menu_reader/README.md`](menu_reader/README.md).
 
-Run the iMessage bridge in the terminal against the stand-in agent. Start the stub first:
+### iMessage bridge (no credentials needed)
+
+Run the bridge in the terminal against the stand-in agent. Start the stub first:
 
 ```bash
 cd spectrum-archive-app && npm install && npm run agent:stub
@@ -60,6 +70,19 @@ Then, in a second terminal:
 cd spectrum-archive-app && AGENT_URL=http://127.0.0.1:8788 npm start
 ```
 
-For the owner app, see [`jolo-app/README.md`](jolo-app/README.md). It needs a development build and a Firebase project, or the local emulators with Java 21.
+Real iMessage needs `PROJECT_ID`/`PROJECT_SECRET` from Photon; see [`spectrum-archive-app/README.md`](spectrum-archive-app/README.md).
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs both apps' checks and the Firestore rules tests on every pull request.
+### Owner app
+
+See [`jolo-app/README.md`](jolo-app/README.md). It needs a development build and a Firebase project, or the local emulators with Java 21.
+
+## Still to agree as a team
+
+- [x] **Firestore as the main database.**
+- [ ] **The menu item format.** Proposal: Firestore stores the reader's item shape as it is (`section`, `item`, `category`, `prices[{size, usd}]`, `confidence`), plus `id` and `available`. See [`docs/contracts.md`](docs/contracts.md) §1.
+- [ ] **The bridge ↔ agent contract** (`POST /v1/turn`), so Bhavesh can build to it.
+- [ ] **iMessage transport.** The bridge uses Photon's Spectrum Cloud. [`docs/model-plan.md`](docs/model-plan.md) asks for the local iMessage Kit so no message leaves our hardware. Pick one before the pitch claims "our own hardware".
+- [ ] **Where the agent runs,** one Qwen server or two, and where owner corrections are stored (questions at the end of [`docs/integration-guide.md`](docs/integration-guide.md)).
+- [ ] **Which sponsor prizes to go for.** See [`docs/product.md`](docs/product.md#sponsor-prizes).
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the bridge's and the app's checks and the Firestore rules tests on every pull request.
