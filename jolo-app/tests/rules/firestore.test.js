@@ -224,6 +224,96 @@ describe("users", () => {
   });
 });
 
+describe("customer events, taste, and niches", () => {
+  const search = {
+    type: "search",
+    text: "oat milk latte",
+    createdAt: serverTimestamp(),
+  };
+  const save = {
+    type: "save",
+    cafeId: "cafe1",
+    itemId: "cortado",
+    itemName: "Cortado",
+    createdAt: serverTimestamp(),
+  };
+
+  it("lets a person append their own events and read them back", async () => {
+    const alice = asUser("alice");
+    await assertSucceeds(setDoc(doc(alice, "users/alice/events/e1"), search));
+    await assertSucceeds(setDoc(doc(alice, "users/alice/events/e2"), save));
+    await assertSucceeds(getDoc(doc(alice, "users/alice/events/e1")));
+  });
+
+  it("keeps the log private and append-only", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "users/alice/events/e1"), {
+        type: "search",
+        text: "cortado",
+        createdAt: new Date(),
+      });
+    });
+    await assertFails(getDoc(doc(asUser("bob"), "users/alice/events/e1")));
+    await assertFails(getDoc(doc(asGuest(), "users/alice/events/e1")));
+    await assertFails(setDoc(doc(asUser("bob"), "users/alice/events/e2"), search));
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "users/alice/events/e1"), { text: "changed" }),
+    );
+    await assertFails(deleteDoc(doc(asUser("alice"), "users/alice/events/e1")));
+  });
+
+  it("rejects an event that isn't one of the six types or carries extra fields", async () => {
+    const alice = asUser("alice");
+    await assertFails(
+      setDoc(doc(alice, "users/alice/events/bad"), {
+        type: "hack",
+        text: "nope",
+        createdAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, "users/alice/events/html"), {
+        ...search,
+        html: "<p>scraped</p>",
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, "users/alice/events/bare"), {
+        type: "save",
+        createdAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("lets a person read their taste and cards, and nobody write them", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "users/alice/taste/current"), { niches: ["oat milk espresso drinks"] });
+      await setDoc(doc(db, "users/alice/recommendations/current"), { cards: [] });
+    });
+    await assertSucceeds(getDoc(doc(asUser("alice"), "users/alice/taste/current")));
+    await assertSucceeds(getDoc(doc(asUser("alice"), "users/alice/recommendations/current")));
+    await assertFails(getDoc(doc(asUser("bob"), "users/alice/taste/current")));
+    await assertFails(
+      setDoc(doc(asUser("alice"), "users/alice/taste/current"), { niches: ["rewritten"] }),
+    );
+    await assertFails(
+      setDoc(doc(asUser("alice"), "users/alice/recommendations/current"), {
+        cards: [{ price: 1 }],
+      }),
+    );
+  });
+
+  it("locks the shared niche cache from every client", async () => {
+    await assertFails(getDoc(doc(asUser("alice"), "niches/oat-milk-espresso-drinks")));
+    await assertFails(
+      setDoc(doc(asOwner(), "niches/oat-milk-espresso-drinks"), {
+        query: "oat milk espresso drinks",
+      }),
+    );
+  });
+});
+
 describe("everything else", () => {
   it("is locked", async () => {
     await assertFails(getDoc(doc(asOwner(), "secrets/anything")));

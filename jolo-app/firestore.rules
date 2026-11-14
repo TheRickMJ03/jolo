@@ -27,6 +27,28 @@ service cloud.firestore {
       return get(cafePath(cafeId)).data.get('currentMenuVersion', 0);
     }
 
+    // An optional string field: absent, or a short non-empty string.
+    function optionalString(data, key, max) {
+      return !data.keys().hasAny([key])
+        || (data.get(key, '') is string
+            && data.get(key, '').size() > 0
+            && data.get(key, '').size() <= max);
+    }
+
+    // One row in users/{uid}/events. The client appends; it never edits.
+    function validEvent(data) {
+      return data.keys().hasAll(['type', 'createdAt'])
+        && data.keys().hasOnly(['type', 'createdAt', 'cafeId', 'itemId', 'itemName', 'text'])
+        && data.type in ['search', 'save', 'unsave', 'purchase', 'dismiss', 'open']
+        && data.createdAt == request.time
+        && optionalString(data, 'text', 280)
+        && optionalString(data, 'cafeId', 80)
+        && optionalString(data, 'itemId', 80)
+        && optionalString(data, 'itemName', 80)
+        && (data.type != 'search' || data.keys().hasAll(['text']))
+        && (data.type == 'search' || data.keys().hasAll(['cafeId', 'itemId', 'itemName']));
+    }
+
     // A menu version written by the app. Item-level checks happen in the app
     // (lib/menu.js); rules can't loop over a list.
     function validAppVersion(data, version) {
@@ -89,6 +111,30 @@ service cloud.firestore {
       match /private/{document} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // Customer event log. Append-only, and readable only by that person.
+      // Owners keep seeing café aggregates, never this.
+      match /events/{eventId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && validEvent(request.resource.data);
+        allow update, delete: if false;
+      }
+
+      // Taste and recommendation cards are written by the recommend job.
+      match /taste/{document} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+      match /recommendations/{document} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    // Shared niche cache. The worker writes it; clients never do.
+    match /niches/{slug} {
+      allow read, write: if false;
     }
 
     // Everything else stays locked until its feature is built.
