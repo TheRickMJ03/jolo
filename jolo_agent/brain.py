@@ -27,7 +27,7 @@ from jolo_agent.flow import MenuUpdateFlow
 from jolo_agent.grounding import ungrounded_facts
 from jolo_agent.intents import quick_intent
 from jolo_agent.menu_ops import format_prices
-from jolo_agent.store.models import hash_phone
+from jolo_agent.store.models import hash_handle
 from jolo_agent.tools import EDIT_TOOLS, Context, customer_tools, owner_tools, template_reply
 
 log = logging.getLogger("jolo.brain")
@@ -95,7 +95,7 @@ class Outbox:
     def drain(self, phone):
         """The waiting messages for this phone number; they are removed."""
         with self._lock:
-            return self._queue.pop(hash_phone(phone), [])
+            return self._queue.pop(hash_handle(phone), [])
 
 
 def _unique(texts):
@@ -119,7 +119,7 @@ class Brain:
 
     def handle_message(self, phone, text="", photos=()):
         """One incoming message. photos: the original image files' bytes, untouched."""
-        phone_hash = hash_phone(phone)
+        phone_hash = hash_handle(phone)
         self.outbox.register(phone_hash, phone)
         text = (text or "").strip()
         self.last = {"calls": [], "regenerated": False, "fallback": False}
@@ -198,6 +198,39 @@ class Brain:
             return ["\n".join(_unique(replies))]
         reply = self._grounded(turn, [system, text], owner_tools(context, draft))
         return [reply or self.flow.status(phone_hash) or OWNER_HELP]
+
+    def apply_correction(self, phone, text):
+        """The owner's fix to an open proposal, for the iMessage bridge (POST /v1/turn "correction").
+
+        Applies the fix to the draft and returns the texts worth saying (what went
+        wrong, or a question); [] when every edit worked. Only the edit tools are
+        offered, so a correction can never save or cancel the update: that is the
+        bridge's "confirm" event.
+        """
+        phone_hash = hash_handle(phone)
+        self.last = {"calls": [], "regenerated": False, "fallback": False}
+        try:
+            with self.flow.lock(phone_hash):
+                cafe = self.store.find_cafe_by_owner(phone_hash)
+                draft = self.store.get_draft(phone_hash)
+                if cafe is None or draft is None:
+                    return [messages.NOTHING_TO_CONFIRM]
+                context = Context(self.store, self.flow, self.search, self.config, phone_hash, cafe, self.model)
+                tools = [tool for tool in owner_tools(context, draft) if tool.name in EDIT_TOOLS]
+                system = self._owner_prompt(cafe, draft)
+                before = len(draft.ops)
+                turn = run_turn(self.model, tools, [SystemMessage(system), HumanMessage(text)],
+                                max_rounds=1, stop_after_tools=True)
+                self.last["calls"] = [(call.name, call.args) for call in turn.calls]
+                if not turn.calls:
+                    return [self._grounded(turn, [system, text], tools) or OWNER_HELP]
+                applied = len(self.store.get_draft(phone_hash).ops) - before
+                if applied == len(turn.calls):
+                    return []
+                return _unique(call.text if isinstance(call.result, str) else OWNER_HELP for call in turn.calls)
+        except ModelDown as error:
+            log.warning("%s", error)
+            return [messages.MODEL_DOWN]
 
     # ---------- customer ----------
 
