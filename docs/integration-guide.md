@@ -4,7 +4,7 @@ Bhavesh, Isaiah, this one is for you.
 
 I finished the eyes as a Python function: a menu photo goes in, structured menu
 data comes out. This page is the short list of what each of you does to use it.
-The [README](../README.md) has the full details and the field-by-field reference;
+The [README](../menu_reader/README.md) has the full details and the field-by-field reference;
 [`menu-update-flow.md`](menu-update-flow.md) shows one menu update step by step.
 
 ## The picture in one minute
@@ -32,7 +32,7 @@ owner's photo --> your agent --> extract_menu(photo) --> MenuResult --> your age
 
    ```bash
    git clone <this repo>
-   cd jolo-menu-reader
+   cd eyemenureader
    python -m venv .venv
    source .venv/bin/activate          # Windows Git Bash: source .venv/Scripts/activate
    python -m pip install paddlepaddle==3.2.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/

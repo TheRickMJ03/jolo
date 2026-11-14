@@ -75,4 +75,4 @@ flowchart LR
 - **"Hosts the model":** right now the Qwen3.5-9B server runs on my AWS VM, and I start it with `scripts/vm/serve_qwen_vision.sh`. Bhavesh, we still need to agree whether it moves under your model serving. Your agent model is also Qwen3.5-9B, so one server may be able to do both jobs; I haven't tested that.
 - **I took out the arrow from vision training to the database**, because there is no training yet. Owner corrections are still worth storing for later.
 
-See [`integration-guide.md`](integration-guide.md) for how to connect, [`menu-update-flow.md`](menu-update-flow.md) for the step-by-step flow, and the [README](../README.md) for the full reference.
+See [`integration-guide.md`](integration-guide.md) for how to connect, [`menu-update-flow.md`](menu-update-flow.md) for the step-by-step flow, and the [README](../menu_reader/README.md) for the full reference.

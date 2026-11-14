@@ -1,0 +1,38 @@
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+.metro-health-check*
+npm-debug.*
+.DS_Store
+*.tsbuildinfo
+
+# Firebase Admin credentials (scripts/link-owner.mjs). Never commit these.
+service-account*.json
+*-firebase-adminsdk-*.json
+
+# Native Firebase config per environment (firebase/dev/, firebase/prod/).
+/firebase/
+GoogleService-Info.plist
+google-services.json
+
+# Local env files
+.env
+.env.local
+.env*.local
+
+# Generated native folders (expo prebuild)
+/ios
+/android
+
+# Firebase emulator logs
+*-debug.log

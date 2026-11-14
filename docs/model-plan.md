@@ -31,7 +31,7 @@ What I measured on dev (17 photos):
 
 Held-out test (8 photos, chosen setup only, read once): item F1 65.4%, recall 70.6%, precision 61.0%, price exact match 98.1%, 33.5 s per photo. The plan asked for every setup on the test photos. I only ran the one I chose, so there is no frontier-model comparison to show judges.
 
-**Known limits** (details in `README.md`):
+**Known limits** (details in `menu_reader/README.md`):
 - Size names printed as a column heading ("12oz / 16oz") are often lost and come back as "small / large". This is most of the gap between dev and test.
 - Decoration and flavor words can come back as items. Both held-out trap checks failed.
 - The confidence score is a ranking aid, not a probability, and misses structural errors.
@@ -43,7 +43,7 @@ Held-out test (8 photos, chosen setup only, read once): item F1 65.4%, recall 70
 - **Reading takes 15 to 100 seconds per photo**, over the 10-second iMessage target in the risk table. The agent should send "Reading your menu…" first and call the reader off the message loop.
 - **The owner check in step 5 matters more than planned.** The reader is good at prices and weak at size names and decor, so confirm with the owner before saving, lowest confidence first.
 - **The flywheel signal "owner corrects a price"** still works, but there is no fine-tuned reader to feed yet.
-- **How to call it:** `extract_menu(photo, current_menu=None)` and `merge_results([...])`; see "Connecting to the pipeline" in `README.md`.
+- **How to call it:** `extract_menu(photo, current_menu=None)` and `merge_results([...])`; see "Connecting to the pipeline" in `menu_reader/README.md`.
 
 ## Summary
 
@@ -62,7 +62,7 @@ JOLO is an iMessage agent that connects coffee lovers and café owners: customer
 | ML component | Job in JOLO | Pitch line it backs | Team owner (from overview) |
 | --- | --- | --- | --- |
 | Menu segmentation | Find the menu board in a cluttered photo | | Not built: my test photos were tightly framed, so I never ran the SAM 3 step |
-| Menu reading (photo to structured items) | Turn a menu photo into items: section, name, sizes, prices, category, with a confidence score and a comparison against the current menu | “Map apps guess. JOLO reads the actual menu on the wall.” A read takes 15 to 100 seconds, not “seconds”. | Ricardo (Qwen3.5-9B with vision; see `README.md`) |
+| Menu reading (photo to structured items) | Turn a menu photo into items: section, name, sizes, prices, category, with a confidence score and a comparison against the current menu | “Map apps guess. JOLO reads the actual menu on the wall.” A read takes 15 to 100 seconds, not “seconds”. | Ricardo (Qwen3.5-9B with vision; see `menu_reader/README.md`) |
 | Agent LLM | Understand the request, call tools, explain each pick | “You don’t search JOLO, you just ask it.” | Bhavesh |
 | Retrieval (RAG): embeddings + reranker | Find the right cafés and menu items for a request | “It checks hours, distance, and reviews, then tells you why.” | Bhavesh |
 | Flywheel learning | Use clicks, picks and owner edits to improve ranking and extraction | “Every search, every photo makes JOLO smarter.” | Ricardo, Bhavesh |
