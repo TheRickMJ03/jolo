@@ -114,7 +114,7 @@ EXPO_PUBLIC_USE_FIREBASE_EMULATORS=1 npm start
 
 Sign in with **(650) 555-1234**. The emulator never sends a text: the code appears in the emulator UI at <http://localhost:4000/auth>. On a physical phone, set `EXPO_PUBLIC_EMULATOR_HOST` to your Mac's LAN IP.
 
-To show the "updates live" moment, edit `cafes/demo-barbaras` in the emulator UI, or run the bridge plus the stub agent and send a menu photo.
+To show the "updates live" moment, edit `cafes/demo-barbaras` in the emulator UI. (The stub agent keeps its menu in memory and never writes Firestore, so a photo sent through it won't show up here; that needs the real agent.)
 
 ## Scripts
 

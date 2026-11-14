@@ -39,6 +39,7 @@ Firestore  cafes/{id} · menuVersions/{n} · insights/{week}   ◀── jolo-ap
 | [`docs/integration-guide.md`](docs/integration-guide.md) | Ricardo's checklist for connecting the agent and the interface to the reader |
 | [`docs/contracts.md`](docs/contracts.md) | The interfaces: Firestore schema, bridge ↔ agent (`POST /v1/turn`), agent ↔ reader |
 | [`docs/conversation-design.md`](docs/conversation-design.md) | Everything JOLO says over iMessage, and when |
+| [`docs/test-flow.md`](docs/test-flow.md) | How to test it, stage by stage, from unit tests to a real text message |
 | [`docs/model-plan.md`](docs/model-plan.md) | The team's model plan |
 | [`docs/product.md`](docs/product.md), [`docs/design/brand.md`](docs/design/brand.md) | User stories, business model, sponsor prizes, brand |
 | [`menu_reader/README.md`](menu_reader/README.md) | The menu reader's full reference, results and known limits |
