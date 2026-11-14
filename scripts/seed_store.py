@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO))
 
 from menu_reader.config import load_config            # noqa: E402
 from menu_reader.schema import MenuItem, Price        # noqa: E402
-from jolo_agent.store import Cafe, User, hash_phone, open_store   # noqa: E402
+from jolo_agent.store import Cafe, User, hash_handle, open_store   # noqa: E402
 
 
 def menus_from_ground_truth():
@@ -59,7 +59,7 @@ def seed(store, owners=()):
         cafe = store.get_cafe(cafe_id)
         if cafe is None:
             sys.exit(f"No café {cafe_id!r}. Choose from: {', '.join(c.cafe_id for c in store.list_cafes())}")
-        phone_hash = hash_phone(phone)
+        phone_hash = hash_handle(phone)
         cafe.owner_phone_hash = phone_hash
         store.upsert_cafe(cafe)
         store.upsert_user(User(phone_hash=phone_hash, role="owner", cafe_id=cafe_id))

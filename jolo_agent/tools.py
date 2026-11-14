@@ -22,7 +22,7 @@ from menu_reader.compare import _key
 from jolo_agent import messages
 from jolo_agent.menu_ops import format_prices
 from jolo_agent.places import is_open, local_now, miles_between, resolve_location
-from jolo_agent.store.models import DAYS, hash_phone
+from jolo_agent.store.models import DAYS, hash_handle
 
 EDIT_TOOLS = {"set_price", "rename_item", "rename_size", "add_item", "remove_item", "keep_item"}
 MENU_LIMIT = 40
@@ -42,7 +42,7 @@ class Context:
 
 def find_cafe_by_phone(store, phone):
     """The café this phone number owns, with its current menu, or None ("not an owner")."""
-    cafe = store.find_cafe_by_owner(hash_phone(phone))
+    cafe = store.find_cafe_by_owner(hash_handle(phone))
     if cafe is None:
         return None
     version = store.get_current_menu(cafe.cafe_id)

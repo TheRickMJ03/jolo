@@ -76,6 +76,9 @@ common:
       port: 8080               # 8000 is the SSH tunnel to the model server
       callback_url: null       # late replies are POSTed here; null = Isaiah polls GET /outbox
       api_key_env: JOLO_API_KEY
+      token_env: AGENT_TOKEN   # the bridge sends this as "Authorization: Bearer ..." (blank = no check)
+      turn_timeout_seconds: 280   # POST /v1/turn waits this long for a photo read; the bridge gives up at 300
+      turn_poll_seconds: 0.5
 
     reads:
       workers: 2               # menu photos read at the same time

@@ -5,7 +5,7 @@ The interfaces between the three parts of JOLO. Isaiah drafted this; **Bhavesh a
 | Part | Owner | Code |
 |---|---|---|
 | Voice and Face: iMessage bridge, conversation design, JOLO app | Isaiah | [`spectrum-archive-app/`](../spectrum-archive-app), [`jolo-app/`](../jolo-app) |
-| Brain: agent, Firestore, search, model serving | Bhavesh | _not in this repo yet_ |
+| Brain: agent, Firestore, search, model serving | Bhavesh | [`jolo_agent/`](../jolo_agent), [`api/`](../api) ([docs/brain.md](brain.md)) |
 | Eyes: photo → menu data | Ricardo | [`menu_reader/`](../menu_reader) ([README](../menu_reader/README.md)) |
 
 ```
@@ -187,6 +187,16 @@ The bridge tracks one pending question per conversation: scope or confirmation. 
 - **Least confident first.** The bridge sorts `added` by `confidence`, lowest first, and shows six lines. Send the items with their `confidence`.
 - **Never delete on `missing_from_photo`.** Put names in `removed` only after the owner answered the scope question with "full".
 
+**As implemented** ([`api/turn.py`](../api/turn.py), [brain.md](brain.md)):
+
+- Auth is `Authorization: Bearer {AGENT_TOKEN}`; no check when `AGENT_TOKEN` is blank.
+- A `message` with a photo returns `ask_scope` at once and reads in the background. A `scope` event waits for the read (up to `turn_timeout_seconds`, 280 s) and answers with `confirm_changes`, or with `unreadable_photo` / `reader_down`. When the read fails immediately, the photo event itself returns `unreadable_photo` / `reader_down`.
+- If the read isn't done in time, the agent answers **504** and keeps the update open, so the bridge's "couldn't reach the menu service" is followed by a normal retry.
+- `confirm_changes.changes.added` is ordered dishes first, add-ons (`modifier`) last. With 1.0 confidence on every item, this is what makes the bridge's six lines worth checking.
+- `removed` is filled only after the `scope` answer "full".
+- Nothing is saved until a `confirm` with `confirmed: true`; a `correction` is applied to the proposal and `confirm_changes` comes back again. A part of the correction the agent can't apply (an item it can't find, say) comes first as a `say`, and the update stays open.
+- At most 5 photos of 10 MB each; more is a 422.
+
 Non-200 responses, timeouts and malformed JSON all make the bridge send "I couldn't reach the menu service just now…". The pending question is kept, so the owner can answer again.
 
 ### Security: never trust `role`
@@ -240,7 +250,7 @@ How the agent maps a result onto §2:
 
 ## 4. Local stand-in for the agent
 
-Until Bhavesh's agent is running, [`spectrum-archive-app/scripts/agent-stub.ts`](../spectrum-archive-app/scripts/agent-stub.ts) implements `POST /v1/turn` with one fake café ("Barbara's", menu version 3), so the whole sequence diagram works end to end. It doesn't read photos: every photo "shows" the same changes, a photo whose file name contains `blurry` is unreadable, and one containing `offline` stands for the model server being down.
+The real agent now implements this ([brain.md](brain.md)). When it isn't running, [`spectrum-archive-app/scripts/agent-stub.ts`](../spectrum-archive-app/scripts/agent-stub.ts) implements `POST /v1/turn` with one fake café ("Barbara's", menu version 3), so the whole sequence diagram works end to end. It doesn't read photos: every photo "shows" the same changes, a photo whose file name contains `blurry` is unreadable, and one containing `offline` stands for the model server being down.
 
 ```bash
 cd spectrum-archive-app && npm run agent:stub

@@ -86,6 +86,17 @@ def test_find_item_exact_fuzzy_and_ambiguous():
     assert find_item(menu, "pizza") == (None, [])
 
 
+def test_a_longer_name_is_a_different_item_not_a_match_for_a_shorter_one():
+    """"Oat Latte" is not on a menu that only has "Latte": repricing Latte for it would be a silent mistake."""
+    only_latte = [item("Latte", 5.00), item("Cortado", 4.50)]
+    assert find_item(only_latte, "oat latte") == (None, [])
+    assert find_item(only_latte, "zebra latte") == (None, [])
+    assert find_item(only_latte, "matcha latte") == (None, [])
+    assert find_item([item("Oat Latte")], "latte") == (0, [])         # the other direction is still fine
+    with pytest.raises(EditError):
+        apply_op([item("Latte", 5.00)], [], {"op": "set_price", "item": "Oat Latte", "usd": 5.50})
+
+
 def test_set_price_single_and_by_size():
     draft = [item("Cortado", 4.50, confidence=0.4),
              item("Latte", prices=[Price(size="Small", usd=4.0), Price(size="Large", usd=5.0)])]
