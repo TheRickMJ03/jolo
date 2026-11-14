@@ -7,9 +7,18 @@ __pycache__/
 
 # Secrets: keys and tokens never go in Git
 .env
+.env.*
+!.env.example
 *.pem
 *.key
 hf_token*
+# Firebase / Google Cloud service-account keys (for agent.store.backend: firestore)
+serviceAccount*.json
+service-account*.json
+firebase-adminsdk*.json
+*-firebase-adminsdk-*.json
+google-credentials*.json
+credentials.json
 
 # Model weights and caches
 *.safetensors
@@ -29,6 +38,12 @@ eval/results/
 # One-off reads (scripts/read_photo.py) and your own demo photos
 output/
 demo/
+
+# The agent's local store and search index (rebuilt by scripts/seed_store.py and build_index.py)
+data/store.json
+data/store.tmp
+data/index/
+agent_eval/results/
 
 # Editors and OS
 .vscode/

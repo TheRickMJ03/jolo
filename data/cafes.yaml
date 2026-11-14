@@ -1,0 +1,221 @@
+# DEMO DATA. Read this before quoting anything from this file.
+#
+# The 22 cafés are the ones in eval/photos.csv, and their menus come from
+# eval/ground_truth.csv (hand-labelled from web photos). Everything in THIS
+# file is invented so the search and "open now" features have something to
+# work with: the display names are guesses from the photo ids, and every
+# address, coordinate, opening hour, vibe and summary is made up. The cafés are
+# placed around Princeton, NJ only because that is where the hackathon is.
+#
+# The landmark coordinates under "places" are approximate.
+#
+# Hours: 24-hour "HH:MM", [open, close]. A missing day means closed.
+
+places:
+  nassau hall: [40.3487, -74.6593]
+  palmer square: [40.3504, -74.6612]
+  princeton station: [40.3422, -74.6596]
+  frist campus center: [40.3468, -74.6552]
+  friend center: [40.3503, -74.6527]
+  princeton public library: [40.3521, -74.6628]
+  princeton stadium: [40.3457, -74.6501]
+  engineering quad: [40.3506, -74.6510]
+
+cafes:
+  barbaras:
+    name: Barbara's
+    address: 12 Witherspoon St, Princeton
+    lat: 40.3509
+    lng: -74.6606
+    hours: {mon: ["07:00", "18:00"], tue: ["07:00", "18:00"], wed: ["07:00", "18:00"], thu: ["07:00", "18:00"], fri: ["07:00", "20:00"], sat: ["08:00", "20:00"], sun: ["08:00", "15:00"]}
+    vibe: warm, family-run, busy at brunch
+    summary: Brazilian café with espresso drinks, fresh juices, açaí, empanadas, sandwiches and full plates.
+
+  bluecafe:
+    name: Blue Café
+    address: 41 Palmer Square W, Princeton
+    lat: 40.3502
+    lng: -74.6618
+    hours: {mon: ["08:00", "16:00"], tue: ["08:00", "16:00"], wed: ["08:00", "16:00"], thu: ["08:00", "16:00"], fri: ["08:00", "16:00"], sat: ["09:00", "15:00"]}
+    vibe: quiet, bright, good for reading
+    summary: French-style sandwiches and croissants, including gluten-free bread.
+
+  minas:
+    name: Minas
+    address: 230 Nassau St, Princeton
+    lat: 40.3517
+    lng: -74.6536
+    hours: {tue: ["11:00", "22:00"], wed: ["11:00", "22:00"], thu: ["11:00", "22:00"], fri: ["11:00", "23:00"], sat: ["11:00", "23:00"], sun: ["12:00", "21:00"]}
+    vibe: lively, casual, open late
+    summary: Brazilian pizzeria and snack bar with açaí, fresh juices, sweet pizzas and Brazilian desserts.
+
+  vicentes:
+    name: Vicente's
+    address: 18 Chambers St, Princeton
+    lat: 40.3513
+    lng: -74.6629
+    hours: {mon: ["07:00", "17:00"], tue: ["07:00", "17:00"], wed: ["07:00", "17:00"], thu: ["07:00", "17:00"], fri: ["07:00", "17:00"], sat: ["08:00", "16:00"], sun: ["08:00", "14:00"]}
+    vibe: quick, healthy, grab-and-go
+    summary: Sandwiches, fresh-pressed juices and fruit smoothies.
+
+  encanto:
+    name: Encanto
+    address: 66 Witherspoon St, Princeton
+    lat: 40.3528
+    lng: -74.6611
+    hours: {wed: ["17:00", "22:00"], thu: ["17:00", "22:00"], fri: ["17:00", "23:00"], sat: ["17:00", "23:00"], sun: ["16:00", "21:00"]}
+    vibe: date night, dim lights, sit-down dinner
+    summary: Latin grill known for churrasco and steak.
+
+  cumbia:
+    name: Cumbia
+    address: 301 Witherspoon St, Princeton
+    lat: 40.3581
+    lng: -74.6627
+    hours: {mon: ["11:00", "21:00"], tue: ["11:00", "21:00"], wed: ["11:00", "21:00"], thu: ["11:00", "21:00"], fri: ["11:00", "22:00"], sat: ["11:00", "22:00"], sun: ["11:00", "20:00"]}
+    vibe: family restaurant, big portions, music
+    summary: Colombian kitchen with bandeja paisa, grilled meats, chicken and rice dishes.
+
+  curiosity:
+    name: Curiosity
+    address: 9 Spring St, Princeton
+    lat: 40.3516
+    lng: -74.6597
+    hours: {mon: ["10:00", "21:00"], tue: ["10:00", "21:00"], wed: ["10:00", "21:00"], thu: ["10:00", "21:00"], fri: ["10:00", "23:00"], sat: ["10:00", "23:00"], sun: ["11:00", "20:00"]}
+    vibe: cozy, playful, students with laptops, board games
+    summary: Asian-inspired café with onigiri, rice bowls, bubble tea, matcha drinks and flavored lattes.
+
+  thewave:
+    name: The Wave
+    address: 140 Alexander St, Princeton
+    lat: 40.3431
+    lng: -74.6608
+    hours: {mon: ["06:30", "15:00"], tue: ["06:30", "15:00"], wed: ["06:30", "15:00"], thu: ["06:30", "15:00"], fri: ["06:30", "15:00"], sat: ["07:30", "14:00"]}
+    vibe: commuter stop, fast, friendly
+    summary: Deli sandwiches, wraps and avocado toast near the station.
+
+  natas:
+    name: Natas
+    address: 20 Nassau St, Princeton
+    lat: 40.3497
+    lng: -74.6621
+    hours: {mon: ["07:00", "19:00"], tue: ["07:00", "19:00"], wed: ["07:00", "19:00"], thu: ["07:00", "19:00"], fri: ["07:00", "19:00"], sat: ["08:00", "19:00"], sun: ["08:00", "17:00"]}
+    vibe: bright, sweet-smelling, small tables
+    summary: Portuguese pastéis de nata in many flavors, espresso drinks, açaí and pitaya bowls, toasted sandwiches.
+
+  mauro:
+    name: Mauro's
+    address: 255 Nassau St, Princeton
+    lat: 40.3521
+    lng: -74.6521
+    hours: {mon: ["06:00", "16:00"], tue: ["06:00", "16:00"], wed: ["06:00", "16:00"], thu: ["06:00", "16:00"], fri: ["06:00", "16:00"], sat: ["06:00", "14:00"], sun: ["07:00", "13:00"]}
+    vibe: old-school, neighborhood regulars, early opener
+    summary: Portuguese bakery café with coffee, pastel de nata, toasted sandwiches and salads.
+
+  cortaditos:
+    name: Cortaditos
+    address: 33 Hulfish St, Princeton
+    lat: 40.3515
+    lng: -74.6615
+    hours: {mon: ["08:00", "17:00"], tue: ["08:00", "17:00"], wed: ["08:00", "17:00"], thu: ["08:00", "17:00"], fri: ["08:00", "19:00"], sat: ["09:00", "19:00"]}
+    vibe: colorful, loud, standing counter
+    summary: Cuban sandwiches pressed to order.
+
+  juans:
+    name: Juan's
+    address: 354 Nassau St, Princeton
+    lat: 40.3536
+    lng: -74.6479
+    hours: {mon: ["06:00", "22:00"], tue: ["06:00", "22:00"], wed: ["06:00", "22:00"], thu: ["06:00", "22:00"], fri: ["06:00", "23:59"], sat: ["06:00", "23:59"], sun: ["07:00", "21:00"]}
+    vibe: classic diner, big menu, open early and late
+    summary: Diner with all-day breakfast, bagels, burgers, wings, tacos and pasta.
+
+  honey:
+    name: Honey
+    address: 4 Hulfish St, Princeton
+    lat: 40.3511
+    lng: -74.6603
+    hours: {mon: ["12:00", "22:00"], tue: ["12:00", "22:00"], wed: ["12:00", "22:00"], thu: ["12:00", "22:00"], fri: ["12:00", "23:59"], sat: ["12:00", "23:59"], sun: ["12:00", "22:00"]}
+    vibe: dessert spot, photogenic, groups of friends, open late
+    summary: Dessert café with milkshakes, chocolate-covered strawberries, Turkish coffee and specialty lattes.
+
+  787cafe:
+    name: 787 Café
+    address: 7 Tulane St, Princeton
+    lat: 40.3507
+    lng: -74.6590
+    hours: {tue: ["08:00", "17:00"], wed: ["08:00", "17:00"], thu: ["08:00", "17:00"], fri: ["08:00", "17:00"], sat: ["09:00", "17:00"], sun: ["09:00", "15:00"]}
+    vibe: specialty coffee bar, minimalist, coffee nerds
+    summary: Specialty coffee with pour overs, cold brew, matcha and rum- or whiskey-infused coffee.
+
+  lafontaine:
+    name: La Fontaine
+    address: 98 University Pl, Princeton
+    lat: 40.3441
+    lng: -74.6601
+    hours: {mon: ["08:00", "18:00"], tue: ["08:00", "18:00"], wed: ["08:00", "18:00"], thu: ["08:00", "18:00"], fri: ["08:00", "18:00"], sat: ["09:00", "18:00"], sun: ["09:00", "16:00"]}
+    vibe: outdoor seating, dog-friendly, relaxed
+    summary: Lemonades, smoothies, crepes, simit and doner or falafel sandwiches, plus a frozen dog treat.
+
+  coastcafe:
+    name: Coast Café
+    address: 185 Nassau St, Princeton
+    lat: 40.3511
+    lng: -74.6552
+    hours: {mon: ["07:00", "18:00"], tue: ["07:00", "18:00"], wed: ["07:00", "18:00"], thu: ["07:00", "18:00"], fri: ["07:00", "18:00"], sat: ["08:00", "18:00"], sun: ["08:00", "16:00"]}
+    vibe: beachy, airy, good wifi, popular for studying
+    summary: Iced lattes, matcha drinks, lemonades and Argentine sweets such as alfajores.
+
+  mattarello:
+    name: Mattarello
+    address: 27 Witherspoon St, Princeton
+    lat: 40.3512
+    lng: -74.6608
+    hours: {wed: ["08:00", "17:00"], thu: ["08:00", "17:00"], fri: ["08:00", "17:00"], sat: ["08:00", "17:00"], sun: ["08:00", "14:00"]}
+    vibe: tiny Italian bakery, takeaway
+    summary: Italian pastries such as lobster tail, bombolone and cheesecake.
+
+  sweet-kitchen:
+    name: Sweet Kitchen
+    address: 164 Nassau St, Princeton
+    lat: 40.3508
+    lng: -74.6561
+    hours: {mon: ["07:00", "20:00"], tue: ["07:00", "20:00"], wed: ["07:00", "20:00"], thu: ["07:00", "20:00"], fri: ["07:00", "20:00"], sat: ["08:00", "20:00"], sun: ["08:00", "18:00"]}
+    vibe: calm, lots of outlets, good for long study sessions
+    summary: Full espresso bar with chai, matcha, freddo espresso, Turkish coffee and frappuccinos.
+
+  skip-to-my-brew:
+    name: Skip to My Brew
+    address: 15 Chambers St, Princeton
+    lat: 40.3510
+    lng: -74.6630
+    hours: {mon: ["07:00", "16:00"], tue: ["07:00", "16:00"], wed: ["07:00", "16:00"], thu: ["07:00", "16:00"], fri: ["07:00", "16:00"], sat: ["08:00", "16:00"], sun: ["08:00", "14:00"]}
+    vibe: cheerful, kid-friendly, quick service
+    summary: Coffee shop with the classics plus sweet lattes such as French toast and blueberry pancake.
+
+  waterbar:
+    name: Water Bar
+    address: 5 Palmer Square E, Princeton
+    lat: 40.3500
+    lng: -74.6606
+    hours: {mon: ["09:00", "17:00"], tue: ["09:00", "17:00"], wed: ["09:00", "17:00"], thu: ["09:00", "17:00"], fri: ["09:00", "17:00"], sat: ["09:00", "17:00"]}
+    vibe: wellness, calm, plants everywhere
+    summary: Wellness bar with chakra-themed drinks, overnight oats, chia and light sandwiches.
+
+  mercado:
+    name: Mercado
+    address: 44 Leigh Ave, Princeton
+    lat: 40.3559
+    lng: -74.6652
+    hours: {mon: ["10:00", "19:00"], tue: ["10:00", "19:00"], wed: ["10:00", "19:00"], thu: ["10:00", "19:00"], fri: ["10:00", "19:00"], sat: ["10:00", "17:00"]}
+    vibe: market deli, neighborhood lunch spot
+    summary: Deli sandwiches with turkey, roast beef, ham and prosciutto, plus a burger.
+
+  sankofa:
+    name: Sankofa
+    address: 110 Nassau St, Princeton
+    lat: 40.3503
+    lng: -74.6581
+    hours: {mon: ["07:00", "19:00"], tue: ["07:00", "19:00"], wed: ["07:00", "19:00"], thu: ["07:00", "19:00"], fri: ["07:00", "21:00"], sat: ["08:00", "21:00"], sun: ["08:00", "17:00"]}
+    vibe: community space, art on the walls, quiet corners
+    summary: Coffee and tea house with espresso drinks, chai, cold brew and coffee tonic.
