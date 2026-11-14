@@ -27,13 +27,30 @@ def hash_phone(phone, salt=None):
     The salt comes from JOLO_PHONE_SALT. Isaiah's app must use the same salt
     and this same function to find a user's documents.
     """
-    digits = re.sub(r"\D", "", phone or "")
-    if len(digits) == 10:
-        digits = "1" + digits            # US number written without the country code
-    if not digits:
-        raise ValueError(f"Not a phone number: {phone!r}")
     salt = salt if salt is not None else os.environ.get("JOLO_PHONE_SALT", "jolo-dev")
-    return hashlib.sha256(f"{salt}:{digits}".encode()).hexdigest()[:32]
+    text = (phone or "").strip()
+    if "@" in text:
+        # iMessage identifies some people by Apple ID email instead of a number.
+        identity = "email:" + text.lower()
+    else:
+        identity = re.sub(r"\D", "", text)
+        if len(identity) == 10:
+            identity = "1" + identity        # US number written without the country code
+        if not identity:
+            raise ValueError(f"Not a phone number: {phone!r}")
+    return hashlib.sha256(f"{salt}:{identity}".encode()).hexdigest()[:32]
+
+
+def hash_handle(handle, salt=None):
+    """Who is texting, as the bridge reports it: a phone number, an Apple ID email, or (on the
+    terminal platform) a plain name like "terminal-user". Phone numbers hash exactly as hash_phone does."""
+    text = (handle or "").strip()
+    if not text:
+        raise ValueError("Empty sender handle")
+    if "@" in text or len(re.sub(r"\D", "", text)) >= 7:
+        return hash_phone(text, salt)
+    salt = salt if salt is not None else os.environ.get("JOLO_PHONE_SALT", "jolo-dev")
+    return hashlib.sha256(f"{salt}:handle:{text.lower()}".encode()).hexdigest()[:32]
 
 
 class Cafe(BaseModel):

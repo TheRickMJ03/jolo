@@ -3,6 +3,7 @@
 Run it (from the repo root, venv active):
     python -m uvicorn api.app:create_app --factory --port 8080
 
+    POST /v1/turn    the iMessage bridge's contract (api/turn.py, docs/contracts.md section 2)
     POST /messages   phone, text, photos (multipart form)  -> {"replies": [...]} to send now
     GET  /outbox     ?phone=...                            -> {"messages": [...]} that became ready later
     GET  /health                                           -> is the model server reachable, etc.
@@ -13,19 +14,22 @@ A menu read takes 15 to 100 seconds, so POST /messages answers at once with
 "Reading your menu…" and the result arrives through the outbox (or through
 agent.api.callback_url, when that is set).
 
-When JOLO_API_KEY is set, every request must send it as the X-Jolo-Key header.
-Set it before binding to 0.0.0.0.
+When JOLO_API_KEY or AGENT_TOKEN is set, every request must send one of them: the key as the
+X-Jolo-Key header, or the token as "Authorization: Bearer <token>" (what the bridge sends).
+Set one before binding to 0.0.0.0.
 """
 
+import hmac
 import os
 import threading
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from api.turn import TurnHandler, TurnRequest
 from jolo_agent.brain import build_brain
 from jolo_agent.insights import weekly_counts
-from jolo_agent.store.models import User, hash_phone
+from jolo_agent.store.models import User, hash_handle, hash_phone
 
 
 class NewUser(BaseModel):
@@ -37,15 +41,26 @@ class NewUser(BaseModel):
 
 def create_app(brain=None):
     brain = brain or build_brain()
-    key_name = brain.settings["api"]["api_key_env"]
+    api_settings = brain.settings["api"]
+    key_name = api_settings["api_key_env"]
+    token_name = api_settings.get("token_env", "AGENT_TOKEN")
 
-    def check_key(x_jolo_key: str | None = Header(default=None)):
-        expected = os.environ.get(key_name)
-        if expected and x_jolo_key != expected:
-            raise HTTPException(status_code=401, detail="Missing or wrong X-Jolo-Key header")
+    def check_key(x_jolo_key: str | None = Header(default=None), authorization: str | None = Header(default=None)):
+        """Open when neither JOLO_API_KEY nor AGENT_TOKEN is set (localhost). Otherwise the caller must send
+        the key as X-Jolo-Key, or the bridge's token as "Authorization: Bearer <AGENT_TOKEN>"."""
+        key, token = os.environ.get(key_name), os.environ.get(token_name)
+        if not key and not token:
+            return
+        if key and x_jolo_key is not None and hmac.compare_digest(x_jolo_key, key):
+            return
+        if token and authorization is not None and hmac.compare_digest(authorization, f"Bearer {token}"):
+            return
+        raise HTTPException(status_code=401, detail="Missing or wrong X-Jolo-Key / Authorization header")
 
     app = FastAPI(title="JOLO agent", dependencies=[Depends(check_key)])
     app.state.brain = brain
+    turns = TurnHandler(brain, wait_seconds=api_settings.get("turn_timeout_seconds", 280),
+                        poll_seconds=api_settings.get("turn_poll_seconds", 0.5))
     threading.Thread(target=brain.warm, daemon=True, name="warm-search").start()
 
     # Plain "def", not "async def": FastAPI runs these in a thread pool, so a
@@ -59,6 +74,11 @@ def create_app(brain=None):
         images = [photo.file.read() for photo in photos]       # the original bytes, never resized
         return {"replies": brain.handle_message(phone, text, images)}
 
+    @app.post("/v1/turn")
+    def post_turn(request: TurnRequest):
+        """The iMessage bridge's endpoint (docs/contracts.md section 2): one event in, actions out."""
+        return {"actions": turns.handle(request)}
+
     @app.get("/outbox")
     def get_outbox(phone: str):
         return {"messages": brain.outbox.drain(phone)}
@@ -71,7 +91,7 @@ def create_app(brain=None):
     def post_user(user: NewUser):
         if user.role not in ("customer", "owner"):
             raise HTTPException(status_code=422, detail="role must be customer or owner")
-        phone_hash = hash_phone(user.phone)
+        phone_hash = hash_handle(user.phone)
         if user.role == "owner":
             cafe = brain.store.get_cafe(user.cafe_id or "")
             if cafe is None:

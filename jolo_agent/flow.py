@@ -16,11 +16,12 @@ import threading
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
+from menu_reader.compare import _key
 from menu_reader.merge import merge_results
 from menu_reader.schema import MenuResult
 from jolo_agent import messages
-from jolo_agent.menu_ops import (EditError, apply_op, changes_between, final_items, has_generic_sizes,
-                                 items_to_check, replay_ops)
+from jolo_agent.menu_ops import (EditError, apply_op, changes_between, check_priority, final_items,
+                                 has_generic_sizes, items_to_check, replay_ops)
 from jolo_agent.store.models import Draft
 
 log = logging.getLogger("jolo.flow")
@@ -45,6 +46,9 @@ class MenuUpdateFlow:
                                                        thread_name_prefix="menu-read")
         self.on_saved = on_saved
         self._locks = defaultdict(threading.RLock)
+        # Why an update ended without a proposal (a read failed, nothing changed), for
+        # callers that word the answer themselves. Cleared when a new photo arrives.
+        self.outcomes = {}
 
     def lock(self, phone_hash):
         """One owner's messages and finished reads are handled one at a time."""
@@ -80,6 +84,7 @@ class MenuUpdateFlow:
         first_menu = not current
         if not (changes.new_items or changes.price_changes or changes.missing_from_photo):
             self.store.delete_draft(draft.phone_hash)
+            self.outcomes[draft.phone_hash] = {"kind": "no_changes"}
             return messages.NO_CHANGES
         draft.state = "awaiting_confirmation"
         draft.shown = 0
@@ -105,6 +110,7 @@ class MenuUpdateFlow:
                 draft.source, draft.scope = "photo", None
             draft.pending_reads += 1
             draft.state = "reading"
+            self.outcomes.pop(phone_hash, None)
             self.store.save_draft(draft)
             replies = [messages.READING] + ([messages.ASK_SCOPE] if draft.scope is None else [])
             token = draft.created_at
@@ -133,6 +139,7 @@ class MenuUpdateFlow:
                 self.send(phone_hash, text)
         except Exception:
             log.exception("Could not finish a menu read")
+            self.outcomes[phone_hash] = {"kind": "reader_down", "reason": "reader_crashed"}
             self.send(phone_hash, messages.READER_DOWN)
 
     def _finish_reading(self, draft):
@@ -143,6 +150,8 @@ class MenuUpdateFlow:
 
         if not draft.results:
             self.store.delete_draft(draft.phone_hash)
+            reason = next((result.reason for result in failed if result.reason), None)
+            self.outcomes[draft.phone_hash] = {"kind": "reader_down" if reader_down else "unreadable", "reason": reason}
             return [messages.READER_DOWN if reader_down else messages.PHOTO_UNREADABLE]
 
         # Each photo was read without the current menu; the comparison is made once, on the merged menu.
@@ -212,6 +221,28 @@ class MenuUpdateFlow:
             batch, start, more_left, _all = self._check_batch(draft, new_items, changes, not current)
             self.store.save_draft(draft)
             return messages.more_items(batch, start, more_left) if batch else messages.NO_MORE + " " + messages.REPLY_YES
+
+    def proposal(self, phone_hash):
+        """The open update as data, for callers that word it themselves (the iMessage bridge).
+
+        None unless the update is waiting for confirmation. "removed" is only
+        ever filled when the owner said the photo shows the full menu, because
+        that is the only way final_items drops anything.
+        """
+        with self.lock(phone_hash):
+            draft = self.store.get_draft(phone_hash)
+            if draft is None or draft.state != "awaiting_confirmation":
+                return None
+            _current, new_items, changes = self._preview(draft)
+            by_name = {_key(item.item): item for item in new_items}
+            added = [by_name[_key(name)] for name in changes.new_items if _key(name) in by_name]
+            return {
+                "cafe_id": draft.cafe_id,
+                # The bridge sorts by confidence with a stable sort, so on a tie this order is what the owner sees.
+                "added": sorted(added, key=check_priority),
+                "price_changes": list(changes.price_changes),
+                "removed": list(changes.missing_from_photo),
+            }
 
     def status(self, phone_hash):
         """One line on what the owner should do next, or None when no update is open."""
