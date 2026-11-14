@@ -1,0 +1,267 @@
+# 30 scripted conversations for agent_eval/run_conversations.py.
+#
+# Every conversation starts from a freshly seeded store (the 22 demo cafés).
+# Owner conversations text as the owner of Barbara's. Menu photos are not read
+# by the real reader here: "photo" gives the items the reader is pretended to
+# return, so the score measures the agent, not the eyes.
+#
+# Per turn:
+#   user          the message
+#   photo         items the pretended reader returns: [{item, usd, confidence, size, category}]
+#   tools         tools that must be called, each with arguments to match
+#                 (text: case-insensitive "contains"; numbers and true/false: equal)
+#   any_tool      at least one of these must be called
+#   no_tools      true: the model must not call any tool
+#   forbid        tools that must NOT be called
+#   reply_has     every one of these must appear in the reply (case-insensitive)
+#   reply_any     at least one of these must appear in the reply
+# Per conversation:
+#   store         what must be true in the store at the end (see check_store in the runner)
+
+conversations:
+  # ---------- customers ----------
+  - id: c01_find_a_drink
+    role: customer
+    turns:
+      - user: "where can I get a cortado?"
+        tools: {search_cafes: {query: cortado}}
+        reply_any: ["Barbara", "Coast", "Curiosity", "Natas", "Mauro", "Sankofa", "Skip", "Sweet Kitchen"]
+
+  - id: c02_whole_menu
+    role: customer
+    turns:
+      - user: "what's on the menu at Natas?"
+        tools: {get_menu: {cafe_id: natas}}
+        reply_any: ["Nata", "Espresso", "Bowl"]
+
+  - id: c03_one_price
+    role: customer
+    turns:
+      - user: "how much is a flat white at Sankofa?"
+        tools: {get_menu: {cafe_id: sankofa}}
+        reply_has: ["4.50"]
+
+  - id: c04_open_now
+    role: customer
+    turns:
+      - user: "is Honey open right now?"
+        tools: {get_hours: {cafe_id: honey}}
+
+  - id: c05_opening_time
+    role: customer
+    turns:
+      - user: "when does Mauro's open on Sunday?"
+        tools: {get_hours: {cafe_id: mauro}}
+        reply_any: ["7"]
+
+  - id: c06_distance
+    role: customer
+    turns:
+      - user: "how far is Barbara's from Nassau Hall?"
+        tools: {distance: {origin: nassau, cafe_id: barbara}}
+        reply_has: ["0.2"]
+
+  - id: c07_near_a_landmark
+    role: customer
+    turns:
+      - user: "I'm at Princeton Station. Where can I get avocado toast nearby?"
+        tools: {search_cafes: {query: avocado, near: station}}
+        reply_any: ["Wave", "Barbara"]
+
+  - id: c08_open_now_filter
+    role: customer
+    turns:
+      - user: "anywhere open right now for a matcha?"
+        tools: {search_cafes: {query: matcha, open_now: true}}
+
+  - id: c09_pick_is_recorded
+    role: customer
+    turns:
+      - user: "I need a quiet place to study"
+        tools: {search_cafes: {}}
+      - user: "great, I'll go to Sweet Kitchen"
+        tools: {record_pick: {cafe_id: sweet}}
+    store: {picks: [sweet-kitchen]}
+
+  - id: c10_cheapest
+    role: customer
+    turns:
+      - user: "where's the cheapest latte?"
+        any_tool: [search_cafes, get_menu]
+
+  - id: c11_item_and_price
+    role: customer
+    turns:
+      - user: "does Curiosity have bubble tea, and how much is it?"
+        any_tool: [get_menu, search_cafes]
+        reply_has: ["4.75"]
+
+  - id: c12_small_talk
+    role: customer
+    turns:
+      - user: "hi!"
+        no_tools: true
+
+  - id: c13_fact_we_do_not_have
+    role: customer
+    turns:
+      - user: "what's the wifi password at Coast Café?"
+        forbid: [record_pick]
+
+  - id: c14_unknown_place
+    role: customer
+    turns:
+      - user: "how far is Minas from the moon?"
+        tools: {distance: {cafe_id: minas}}
+
+  - id: c15_unknown_cafe
+    role: customer
+    turns:
+      - user: "what time does Starbucks close tonight?"
+        forbid: [record_pick]
+
+  - id: c16_follow_up
+    role: customer
+    turns:
+      - user: "who has pastel de nata?"
+        tools: {search_cafes: {query: nata}}
+        reply_any: ["Natas", "Mauro"]
+      - user: "what else do they have at Natas?"
+        tools: {get_menu: {cafe_id: natas}}
+
+  - id: c17_vibe_near_a_place
+    role: customer
+    turns:
+      - user: "something sweet near Palmer Square?"
+        tools: {search_cafes: {near: palmer}}
+
+  - id: c18_closed_day
+    role: customer
+    turns:
+      - user: "is Encanto open on Mondays?"
+        tools: {get_hours: {cafe_id: encanto}}
+        reply_any: ["closed", "not open", "isn't open", "no"]
+
+  # ---------- owners (the owner of Barbara's) ----------
+  - id: o01_photo_partial_yes
+    role: owner
+    turns:
+      - user: "update the menu"
+        photo: [{item: Cortado, usd: 3.25, confidence: 0.9}, {item: Pistachio Latte, usd: 5.50, confidence: 0.6}]
+        reply_has: ["Reading your menu"]
+      - user: "Just part of it"
+        no_tools: true
+        reply_has: ["Pistachio Latte", "3.25"]
+      - user: "Yes, all correct"
+        no_tools: true
+        reply_has: ["updated"]
+    store: {version: 2, prices: {Cortado: 3.25, Pistachio Latte: 5.50}, has_items: [Latte, Gnocchi], draft: false}
+
+  - id: o02_fix_a_price
+    role: owner
+    turns:
+      - user: ""
+        photo: [{item: Cortado, usd: 3.25, confidence: 0.4}]
+      - user: "part of it"
+      - user: "the cortado should be 3.50, not 3.25"
+        tools: {set_price: {item: cortado, usd: 3.5}}
+        forbid: [confirm_update]
+      - user: "yes"
+    store: {version: 2, prices: {Cortado: 3.50}, corrections: 1}
+
+  - id: o03_decoration_is_not_an_item
+    role: owner
+    turns:
+      - user: ""
+        photo: [{item: Mocha, usd: 6.75, confidence: 0.9}, {item: Live Laugh Love, confidence: 0.2}]
+      - user: "just a part"
+      - user: "live laugh love isn't a menu item, that's a sign on the wall"
+        tools: {remove_item: {item: live laugh love}}
+      - user: "looks good"
+    store: {version: 2, prices: {Mocha: 6.75}, lacks_items: [Live Laugh Love]}
+
+  - id: o04_size_names
+    role: owner
+    turns:
+      - user: ""
+        photo: [{item: Latte, usd: 3.50, size: Small, confidence: 0.8}, {item: Latte, usd: 4.25, size: Large, confidence: 0.8}]
+      - user: "only part of the menu"
+      - user: "small is 12oz and large is 16oz"
+        tools: [{rename_size: {old_size: small, new_size: 12oz}}, {rename_size: {old_size: large, new_size: 16oz}}]
+        forbid: [confirm_update]
+      - user: "yes"
+    store: {version: 2, sizes: {Latte: [12oz, 16oz]}}
+
+  - id: o05_full_menu_keep_one
+    role: owner
+    turns:
+      - user: "that's the full menu"
+        photo: [{item: Cortado, usd: 3.00, confidence: 0.9}, {item: Latte, usd: 3.75, confidence: 0.9}]
+      - user: "keep the espresso on the menu"
+        tools: {keep_item: {item: espresso}}
+        forbid: [confirm_update]
+      - user: "yes"
+    store: {version: 2, has_items: [Cortado, Latte, Espresso], lacks_items: [Mocha, Gnocchi], prices: {Latte: 3.75}}
+
+  - id: o06_change_in_words
+    role: owner
+    turns:
+      - user: "the latte is 4.25 now"
+        tools: {set_price: {item: latte, usd: 4.25}}
+        forbid: [confirm_update]
+      - user: "yes"
+    store: {version: 2, prices: {Latte: 4.25}, has_items: [Cortado], source: owner_text}
+
+  - id: o07_add_in_words
+    role: owner
+    turns:
+      - user: "add a pumpkin spice latte for 5.75"
+        tools: {add_item: {item: pumpkin spice latte, usd: 5.75}}
+      - user: "save it"
+    store: {version: 2, prices: {Pumpkin Spice Latte: 5.75}}
+
+  - id: o08_remove_in_words
+    role: owner
+    turns:
+      - user: "take the gnocchi off the menu"
+        tools: {remove_item: {item: gnocchi}}
+      - user: "yes"
+    store: {version: 2, lacks_items: [Gnocchi], has_items: [Spaghetti]}
+
+  - id: o09_show_my_menu
+    role: owner
+    turns:
+      - user: "show me my menu"
+        tools: {get_my_menu: {}}
+        reply_has: ["Cortado"]
+    store: {version: 1}
+
+  - id: o10_insights
+    role: owner
+    turns:
+      - user: "how did my café do this week?"
+        tools: {get_insights: {}}
+    store: {version: 1}
+
+  - id: o11_cancel
+    role: owner
+    turns:
+      - user: ""
+        photo: [{item: Mocha, usd: 7.00, confidence: 0.9}]
+      - user: "part of it"
+      - user: "actually, cancel that"
+        any_tool: [cancel_update]
+        forbid: [confirm_update]
+    store: {version: 1, draft: false}
+
+  - id: o12_yes_but
+    role: owner
+    turns:
+      - user: ""
+        photo: [{item: Mocha, usd: 6.25, confidence: 0.5}, {item: Cortado, usd: 3.25, confidence: 0.9}]
+      - user: "just part of it"
+      - user: "yes but the mocha is 6.50, same as before"
+        tools: {set_price: {item: mocha, usd: 6.5}}
+        forbid: [confirm_update]
+      - user: "yes"
+    store: {version: 2, prices: {Mocha: 6.50, Cortado: 3.25}}
