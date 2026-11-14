@@ -1,0 +1,80 @@
+# JOLO menu reader config.
+# Pick a profile with the JOLO_PROFILE environment variable (default: vm).
+# Switching between laptop and VM must only ever mean switching the profile.
+#   vm          the chosen setup: Qwen3.5-9B on the VM reads the photo
+#   laptop_cpu  the earlier experiments: GLM-OCR on the laptop through Ollama
+
+default_profile: vm
+
+# Settings shared by every profile. A profile can override any of these.
+common:
+  intake:
+    max_side_px: 2000          # longest side after resize
+    blur_threshold: null       # set in M2, from dev photos only
+
+  ppocr:                       # PP-OCRv6, always on CPU on the laptop
+    # Tiers: tiny (fastest), small, medium (most accurate, slowest on CPU).
+    detection_model: PP-OCRv6_small_det
+    recognition_model: PP-OCRv6_small_rec
+    device: cpu
+    enable_mkldnn: true        # set false if Paddle crashes with a oneDNN/MKLDNN error
+
+  preprocess:
+    # Everything is off until the M2 debug images show which steps help.
+    perspective: false         # straighten the board when one clear 4-sided board is found
+    invert_dark: false         # invert light-on-dark boards (chalkboards)
+    clahe: false               # local contrast boost
+    upscale_long_side_px: null # e.g. 2000 to enlarge small web images
+
+  crop:
+    mode: none                 # none | ppocr_boxes | sam3_cached
+    min_text_score: 0.5        # ppocr_boxes: ignore text lines below this score
+    margin: 0.03               # ppocr_boxes: padding, as a fraction of the image size
+    sam3_cache_dir: eval/cache/crops
+
+  reader:
+    name: glm_ocr_schema       # which function in readers.py
+    max_tokens: 4096           # caps a runaway reply at about 10 minutes on the laptop CPU
+    structurer_max_tokens: 8192  # for the language model in two-step readers
+    temperature: 0
+    timeout_seconds: 1800      # CPU is slow: allow up to 30 minutes per photo
+
+  confidence:
+    # Back each item with a second read by PP-OCR on the CPU (adds its run time
+    # to every photo). Off: every item gets the "unchecked" confidence 0.5.
+    ppocr_check: false
+
+  eval:
+    name_match_threshold: 85   # RapidFuzz token_set_ratio
+
+profiles:
+  laptop_cpu:
+    # Ollama's OpenAI-compatible endpoint.
+    endpoint: http://localhost:11434/v1
+    models:
+      glm_ocr: glm-ocr-jolo    # built from scripts/ollama/Modelfile.glm-ocr
+      # The language model that turns transcribed text into our schema
+      # (reader glm_ocr_then_structure): Qwen3.5-9B served by vLLM on the VM,
+      # reached through the SSH tunnel (ssh -N -L 8000:localhost:8000 ...).
+      # The VM must be running and the tunnel open, or this reader reports
+      # a model_error.
+      structurer:
+        name: qwen3.5-9b       # the --served-model-name in scripts/vm/serve_qwen.sh
+        endpoint: http://localhost:8000/v1
+
+  vm:
+    # The setup chosen from the dev results: Qwen3.5-9B reads the photo itself.
+    # vLLM on the VM (scripts/vm/serve_qwen_vision.sh), reached through:
+    #   ssh -N -L 8000:localhost:8000 ...
+    endpoint: http://localhost:8000/v1
+    reader:
+      name: qwen_photo_lines
+    preprocess:
+      upscale_long_side_px: 2000   # small web images read much better enlarged
+    confidence:
+      ppocr_check: true
+    models:
+      glm_ocr: glm-ocr         # the --served-model-name from GLM-OCR's README
+      structurer: qwen3.5-9b
+      qwen_vision: qwen3.5-9b  # same server, started with scripts/vm/serve_qwen_vision.sh
+      # The other served model names are filled in at M5.

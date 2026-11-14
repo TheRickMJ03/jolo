@@ -1,0 +1,40 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets: keys and tokens never go in Git
+.env
+*.pem
+*.key
+hf_token*
+
+# Model weights and caches
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.pdparams
+*.pdiparams
+*.gguf
+models/
+weights/
+
+# Eval outputs (regenerated; copied between machines with scp, not Git)
+eval/cache/
+eval/results/
+
+# One-off reads (scripts/read_photo.py) and your own demo photos
+output/
+demo/
+
+# Editors and OS
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+.DS_Store
+
+OllamaSetup.exe
