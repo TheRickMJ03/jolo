@@ -1,0 +1,31 @@
+# Dev/test split, by café (never by photo).
+# Test photos are only ever used for the final test run.
+
+test:
+  - sweet-kitchen_18
+  - mattarello_17
+  - mauro_10
+  - sankofa_22
+  - vicentes_04a
+  - vicentes_04b
+  - cortaditos_11
+  - honey_13
+
+dev:
+  - barbaras_01
+  - bluecafe_02
+  - minas_03
+  - encanto_05
+  - cumbia_06
+  - curiosity_07a
+  - curiosity_07b
+  - curiosity_07c
+  - thewave_08
+  - natas_09
+  - juans_12
+  - 787cafe_14
+  - lafontaine_15
+  - coastcafe_16
+  - skip-to-my-brew_19
+  - waterbar_20
+  - mercado_21
