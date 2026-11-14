@@ -100,3 +100,40 @@ jobs:
           key: firebase-emulators-${{ hashFiles('jolo-app/package-lock.json') }}
       - run: npm ci
       - run: npm run test:rules
+
+  brain-firestore:
+    name: Brain on the Firestore emulator (jolo_agent store)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-agent.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: jolo-app/package-lock.json
+      # The Firestore emulator needs Java 21+.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('jolo-app/package-lock.json') }}
+      - run: grep -v -E '^(paddleocr|paddlex)==' requirements.txt > /tmp/requirements-ci.txt
+      - run: grep -v -i -E '^(torch|sentence-transformers)' requirements-agent.txt > /tmp/requirements-agent-ci.txt
+      - run: python -m pip install -r /tmp/requirements-ci.txt
+      - run: python -m pip install -r /tmp/requirements-agent-ci.txt -c /tmp/requirements-ci.txt
+      - run: npm ci
+        working-directory: jolo-app
+      # emulators:exec sets FIRESTORE_EMULATOR_HOST, so the store tests that skip themselves elsewhere run for real.
+      - name: Store tests against the emulator
+        working-directory: jolo-app
+        run: npx firebase emulators:exec --only firestore --project demo-jolo "cd .. && python -m pytest tests/test_agent_firestore.py -q"

@@ -29,7 +29,7 @@ from pydantic import BaseModel
 from api.turn import TurnHandler, TurnRequest
 from jolo_agent.brain import build_brain
 from jolo_agent.insights import weekly_counts
-from jolo_agent.store.models import User, hash_handle, hash_phone
+from jolo_agent.store.models import User, hash_handle, hash_phone, to_e164
 
 
 class NewUser(BaseModel):
@@ -62,6 +62,8 @@ def create_app(brain=None):
     turns = TurnHandler(brain, wait_seconds=api_settings.get("turn_timeout_seconds", 280),
                         poll_seconds=api_settings.get("turn_poll_seconds", 0.5))
     threading.Thread(target=brain.warm, daemon=True, name="warm-search").start()
+    if brain.settings["store"]["backend"] == "firestore":          # only the app edits menus behind the brain's back
+        brain.start_refresher(brain.settings["search"].get("refresh_seconds", 0))
 
     # Plain "def", not "async def": FastAPI runs these in a thread pool, so a
     # slow model call never blocks other phones' messages.
@@ -99,6 +101,7 @@ def create_app(brain=None):
             if cafe.owner_phone_hash and cafe.owner_phone_hash != phone_hash:
                 raise HTTPException(status_code=409, detail="This café already has another owner")
             cafe.owner_phone_hash = phone_hash
+            cafe.owner_phone = to_e164(user.phone) or user.phone.strip()
             brain.store.upsert_cafe(cafe)
         brain.store.upsert_user(User(phone_hash=phone_hash, name=user.name, role=user.role,
                                      cafe_id=user.cafe_id if user.role == "owner" else None))

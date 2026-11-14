@@ -152,8 +152,12 @@ class TurnHandler:
             self.flow.cancel(phone_hash)
             return [{"type": "cancelled"}]
         before = cafe.current_version
+        self.flow.outcomes.pop(phone_hash, None)
         text = self.flow.confirm(phone_hash)
         after = self.store.get_cafe(cafe.cafe_id).current_version
+        if (self.flow.outcomes.pop(phone_hash, None) or {}).get("kind") == "stale":
+            # The app edited the menu while the owner was deciding: the same question again, on the new menu.
+            return [say(messages.MENU_CHANGED)] + self._proposal(phone_hash, cafe)
         if after > before:
             return [{"type": "menu_updated", "cafe_name": cafe.name, "version": after}]
         if text == messages.ASK_SCOPE:

@@ -92,6 +92,8 @@ common:
       models_dir: models/hf    # Hugging Face downloads go here, not to the C: drive
       embedding_model: Qwen/Qwen3-Embedding-0.6B
       reranker_model: Qwen/Qwen3-Reranker-0.6B
+      rebuild_on_start: true   # rebuild from the store at startup (unchanged texts keep their vectors); Firestore is also edited by the app
+      refresh_seconds: 60      # check for menus edited elsewhere (the app) this often and re-index them; 0 = off
       use_embeddings: true     # false = keyword search (BM25) only
       use_reranker: true
       candidates: 50           # hits kept from keyword + vector search

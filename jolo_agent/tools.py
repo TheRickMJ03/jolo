@@ -21,7 +21,7 @@ from rapidfuzz import fuzz, process
 from menu_reader.compare import _key
 from jolo_agent import messages
 from jolo_agent.menu_ops import format_prices
-from jolo_agent.places import is_open, local_now, miles_between, resolve_location
+from jolo_agent.places import describe_day, is_open, local_now, miles_between, resolve_location
 from jolo_agent.store.models import DAYS, hash_handle
 
 EDIT_TOOLS = {"set_price", "rename_item", "rename_size", "add_item", "remove_item", "keep_item"}
@@ -73,6 +73,13 @@ def _tool(function, description):
     return StructuredTool.from_function(func=function, name=function.__name__, description=description)
 
 
+def _listed(item, sold_out):
+    entry = {"item": item.item, "category": item.category, "prices": format_prices(item)}
+    if item.item in sold_out:
+        entry["sold_out"] = True
+    return entry
+
+
 # ---------- customer ----------
 
 def customer_tools(ctx):
@@ -96,8 +103,9 @@ def customer_tools(ctx):
         items = _matching(version.items, contains)
         store.add_event("menu_view", cafe.cafe_id, ctx.phone_hash, {"contains": contains})
         out = {"cafe_id": cafe.cafe_id, "name": cafe.name, "menu_updated": version.created_at[:10],
-               "items": [{"item": item.item, "category": item.category, "prices": format_prices(item)}
-                         for item in items[:MENU_LIMIT]]}
+               "items": [_listed(item, version.sold_out) for item in items[:MENU_LIMIT]]}
+        if version.sold_out:
+            out["note"] = "Items marked sold_out are not available right now."
         if len(items) > MENU_LIMIT:
             out["note"] = f"{len(items) - MENU_LIMIT} more items not shown. Use contains to look for one."
         if contains and not items:
@@ -114,7 +122,7 @@ def customer_tools(ctx):
         now = local_now(timezone)
         return {"cafe_id": cafe.cafe_id, "name": cafe.name, "today": DAYS[now.weekday()],
                 "open_now": is_open(cafe.hours, now),
-                "hours": {day: "-".join(cafe.hours[day]) if cafe.hours.get(day) else "closed" for day in DAYS}}
+                "hours": {day: describe_day(cafe.hours.get(day)) for day in DAYS}}
 
     def distance(origin: str, cafe_id: str):
         cafe = resolve_cafe(store, cafe_id)
