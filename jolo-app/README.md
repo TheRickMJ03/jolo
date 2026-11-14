@@ -1,6 +1,11 @@
-# JOLO Owner app
+# JOLO app
 
-The café owner's side of JOLO: **sign in with your phone number, see your live menu, edit it, look back through its versions, and read weekly insights.** It's an Expo / React Native app built on the [JOLO app](https://github.com/zayguz/JOLO) (`~/JOLO_app`).
+One app, two sides, picked at sign-in by phone number:
+
+- **Owners** (the phone is a café's `ownerPhone`): **see your live menu, edit it, look back through its versions, and read weekly insights.**
+- **Everyone else** gets the original JOLO interface: Finder (map of nearby cafés), Social, Favorites and Profile.
+
+ It's an Expo / React Native app built on the [JOLO app](https://github.com/zayguz/JOLO) (`~/JOLO_app`).
 
 Reused from the JOLO app:
 - React Native Firebase and the dev-build setup
@@ -10,6 +15,7 @@ Reused from the JOLO app:
 - the error messages
 - the lint, format and test configuration
 - the existing `users` Firestore rules
+- the customer tabs (Finder, Social, Favorites, Profile), with maps, location and the Union County café data
 
 New here:
 - phone sign-in
@@ -22,12 +28,15 @@ The data shapes are agreed in [`../docs/contracts.md`](../docs/contracts.md).
 ```
 app/
   (login)/            signed out: phone sign-in (first), email sign-in / register / reset
-  owner/              signed in: Menu · History · Insights · Account tabs
+  owner/              signed in, phone owns a café: Menu · History · Insights · Account tabs
+  user/               signed in, anyone else: Finder · Social · Favorites · Profile (the original JOLO app)
+features/for-you/     parked drink-recommendation screens; not routed (see ../docs/drink-recommendations.md)
+data/cafes/           Union County cafés from OpenStreetMap, for seed:cafes
 components/           Button, Banner, MenuItemRow, ItemEditor, ChangeList, EmptyState, …
 hooks/                useOwnerCafe, useCurrentMenu / useMenuHistory, useInsights (all live listeners)
 lib/                  auth, menu logic (pure, tested), menu-store (the one write), phone, insights
 firestore.rules       owner-only menu writes; immutable history; shared users rules
-scripts/              seed-emulator.mjs, link-owner.mjs
+scripts/              seed-emulator.mjs, seed-cafes.mjs, link-owner.mjs
 tests/rules/          Firestore rules tests (emulator)
 tests/screens/        screen tests (Jest + React Native Testing Library)
 ```
@@ -127,6 +136,7 @@ To show the "updates live" moment, edit `cafes/demo-barbaras` in the emulator UI
 | `npm run lint`, `npm run format:check`, `npm run typecheck` | Static checks; CI runs all of these |
 | `npm run emulators` | Local Auth and Firestore emulators |
 | `npm run seed:emulator` | Demo café in the emulator; refuses to run against anything else |
+| `npm run seed:cafes` | The ~70 Union County cafés for the Finder, into the emulator only. `FIRESTORE_PROJECT_ID` defaults to `jolo-ec76d`, the project the app reads |
 | `npm run link-owner -- …` | Set or unset a café's `ownerPhone` (dry run unless `--yes`) |
 
 Optional env: `EXPO_PUBLIC_JOLO_IMESSAGE_HANDLE`, the number owners text their menu to, is shown on the Account tab.
@@ -135,4 +145,6 @@ Optional env: `EXPO_PUBLIC_JOLO_IMESSAGE_HANDLE`, the number owners text their m
 
 - **Linking a phone to an email account.** An email user has to sign out and use phone sign-in. `linkWithCredential` would let them keep one account.
 - **Choosing between several cafés.** If one phone owns several cafés, the app shows the first.
-- **The customer side.** The finder, social feed and favorites from the JOLO app aren't ported. Customers use iMessage in this project.
+- **Social and Favorites** still show the original app's placeholder content; they don't read Firestore yet.
+- **Owner-created cafés have no map pin.** A café linked over iMessage has an address but no coordinates, so the Finder lists it without a marker.
+- **Drink recommendations are parked.** The For you screens, event log and `../recommend/` worker are in the repo but not routed.

@@ -77,7 +77,16 @@ module.exports = {
         "expo-build-properties",
         {
           // The Firebase iOS SDK needs dynamic frameworks (same as the JOLO app).
-          ios: { useFrameworks: "dynamic" },
+          // react-native-maps only builds statically linked.
+          ios: { useFrameworks: "dynamic", forceStaticLinking: ["react-native-maps"] },
+        },
+      ],
+      [
+        // The customer Finder shows cafés near you.
+        "expo-location",
+        {
+          locationWhenInUsePermission:
+            "JOLO uses your location to show cafés near you and how far away they are.",
         },
       ],
     ],
