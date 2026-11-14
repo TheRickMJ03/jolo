@@ -85,4 +85,4 @@ See [`jolo-app/README.md`](jolo-app/README.md). It needs a development build and
 - [ ] **Where the agent runs,** one Qwen server or two, and where owner corrections are stored (questions at the end of [`docs/integration-guide.md`](docs/integration-guide.md)).
 - [ ] **Which sponsor prizes to go for.** See [`docs/product.md`](docs/product.md#sponsor-prizes).
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the bridge's and the app's checks and the Firestore rules tests on every pull request.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the menu reader's tests, the bridge's and the app's checks, and the Firestore rules tests on every pull request.

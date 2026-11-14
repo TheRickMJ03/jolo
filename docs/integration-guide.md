@@ -90,12 +90,14 @@ owner's photo --> your agent --> extract_menu(photo) --> MenuResult --> your age
 
 You don't call the eyes directly; the agent does. These are the moments your side shows.
 
-- [ ] **A wait message.** Send something like "Reading your menu…" as soon as a photo arrives. The answer comes 15 to 100 seconds later.
-- [ ] **Pass the photo through untouched.** Hand the agent the original image bytes (HEIC, JPG, PNG and WebP all work). Don't shrink or screenshot it: small text is what the reader struggles with.
-- [ ] **A confirmation step.** Show the owner what was found and let them fix it, for example "Found 24 items. Cortado $4.50?" Plan for corrections to size names in particular.
-- [ ] **Several photos in a row.** Owners often send a menu in parts. The agent merges them, so the interface should let them send more before confirming.
-- [ ] **Two failure messages.** "I couldn't read that photo, can you send a clearer one?" and "I can't read menus right now, try again in a minute."
-- [ ] **For the dashboard:** every item has `section`, `item`, `category` (`drink`, `food` or `modifier`), a list of `prices` (each with an optional `size` and a `usd` number, possibly empty) and a `confidence` from 0 to 1. `add_ons`, `variants` and `tags` exist but come back empty for now.
+_Isaiah: all six are built in the bridge and the owner app, against a stand-in agent. What the agent has to send for each is in [`contracts.md`](contracts.md) §2 and §3; the wording is in [`conversation-design.md`](conversation-design.md)._
+
+- [x] **A wait message.** Send something like "Reading your menu…" as soon as a photo arrives. The answer comes 15 to 100 seconds later.
+- [x] **Pass the photo through untouched.** Hand the agent the original image bytes (HEIC, JPG, PNG and WebP all work). Don't shrink or screenshot it: small text is what the reader struggles with.
+- [x] **A confirmation step.** Show the owner what was found and let them fix it, for example "Found 24 items. Cortado $4.50?" Plan for corrections to size names in particular.
+- [x] **Several photos in a row.** Owners often send a menu in parts. The agent merges them, so the interface should let them send more before confirming.
+- [x] **Two failure messages.** "I couldn't read that photo, can you send a clearer one?" and "I can't read menus right now, try again in a minute."
+- [x] **For the dashboard:** every item has `section`, `item`, `category` (`drink`, `food` or `modifier`), a list of `prices` (each with an optional `size` and a `usd` number, possibly empty) and a `confidence` from 0 to 1. `add_ons`, `variants` and `tags` exist but come back empty for now.
 
 ## What to expect from the results
 

@@ -1,18 +1,42 @@
 // Menu logic with no Firebase in it, so it's unit-tested. The shapes follow
-// docs/contracts.md: MenuItem, and menuVersions documents. Prices are integer
-// cents throughout.
+// docs/contracts.md: MenuItem is the menu reader's item (section, item,
+// category, prices[{size, usd}], confidence) plus `id` and `available`.
+// Prices are dollars, as the reader returns them; anything that compares or
+// parses a price goes through whole cents so floats never drift.
 
 export const MAX_ITEMS = 300;
-export const COMPARED_FIELDS = ["name", "category", "priceCents", "description", "available"];
+export const CATEGORIES = ["drink", "food", "modifier"];
+export const CATEGORY_LABELS = { drink: "Drink", food: "Food", modifier: "Extra" };
+export const MAX_SIZES = 6;
 
-/** 475 → "$4.75"; null → "No price". */
-export function formatPrice(cents) {
-  if (typeof cents !== "number" || !Number.isFinite(cents)) return "No price";
-  return `$${(cents / 100).toFixed(2)}`;
+/**
+ * Items the reader scored below this get a "check this" marker. Its scores
+ * are a ranking aid, not a probability: 0.4 means nothing backed the item,
+ * and 0.5 means the second read was switched off, which says nothing either way.
+ */
+export const CHECK_BELOW = 0.5;
+
+const toCents = (usd) => Math.round(usd * 100);
+const isAmount = (value) => typeof value === "number" && Number.isFinite(value);
+
+/** 4.75 → "$4.75"; null → "No price". */
+export function formatPrice(usd) {
+  if (!isAmount(usd)) return "No price";
+  return `$${(toCents(usd) / 100).toFixed(2)}`;
+}
+
+/** "$4.50", "12 oz $3.50 · 16 oz $4.25", or "No price". */
+export function formatPrices(prices) {
+  if (!Array.isArray(prices) || prices.length === 0) return "No price";
+  return prices
+    .map((price) =>
+      price.size ? `${price.size} ${formatPrice(price.usd)}` : formatPrice(price.usd),
+    )
+    .join(" · ");
 }
 
 /**
- * What an owner types → cents. "4.75", "$4.75", "4", "4.5" → 475, 475, 400, 450.
+ * What an owner types → dollars. "4.75", "$4.75", "4", "4.5" → 4.75, 4.75, 4, 4.5.
  * "" → null (no price). Anything else → undefined (invalid).
  */
 export function parsePriceInput(text) {
@@ -22,7 +46,7 @@ export function parsePriceInput(text) {
   if (trimmed === "") return null;
   if (!/^\d{1,4}(\.\d{1,2})?$/.test(trimmed)) return undefined;
   const [whole, fraction = ""] = trimmed.split(".");
-  return Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  return (Number(whole) * 100 + Number(fraction.padEnd(2, "0"))) / 100;
 }
 
 export function slugify(name) {
@@ -45,48 +69,130 @@ export function uniqueItemId(name, takenIds) {
   return `${base}-${n}`;
 }
 
+const text = (value) => {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed === "" ? null : trimmed;
+};
+const list = (value) => (Array.isArray(value) ? value : []);
+
 /** Fills defaults so items written by the app match the contract exactly. */
 export function normalizeItem(item) {
-  const text = (value) => {
-    const trimmed = typeof value === "string" ? value.trim() : "";
-    return trimmed === "" ? null : trimmed;
-  };
   return {
     id: item.id,
-    name: String(item.name ?? "").trim(),
-    category: text(item.category),
-    priceCents: typeof item.priceCents === "number" ? item.priceCents : null,
-    description: text(item.description),
+    section: text(item.section),
+    item: String(item.item ?? "").trim(),
+    category: CATEGORIES.includes(item.category) ? item.category : "drink",
+    prices: list(item.prices)
+      .filter((price) => isAmount(price?.usd))
+      .map((price) => ({ size: text(price.size), usd: toCents(price.usd) / 100 })),
+    add_ons: list(item.add_ons),
+    variants: list(item.variants),
+    tags: list(item.tags),
+    confidence: isAmount(item.confidence) ? item.confidence : 1,
     available: item.available !== false,
   };
 }
 
+/** True when the reader wasn't sure about this item and the owner hasn't edited it since. */
+export const needsCheck = (item) => isAmount(item?.confidence) && item.confidence < CHECK_BELOW;
+
 /** Human-readable problems with one item; empty when it's fine. */
 export function validateItem(item) {
   const errors = [];
-  if (!item.name || !String(item.name).trim()) errors.push("Give the item a name.");
-  else if (String(item.name).trim().length > 80) errors.push("Keep the name under 80 characters.");
-  if (item.priceCents !== null && item.priceCents !== undefined) {
-    if (!Number.isInteger(item.priceCents) || item.priceCents < 0 || item.priceCents > 999_999) {
-      errors.push("Enter a price like 4.75.");
-    }
+  if (!item.item || !String(item.item).trim()) errors.push("Give the item a name.");
+  else if (String(item.item).trim().length > 80) errors.push("Keep the name under 80 characters.");
+  if (item.section && String(item.section).length > 60) {
+    errors.push("Keep the section under 60 characters.");
   }
-  if (item.description && String(item.description).length > 300) {
-    errors.push("Keep the description under 300 characters.");
+
+  const prices = list(item.prices);
+  if (prices.length > MAX_SIZES) errors.push(`An item can have at most ${MAX_SIZES} sizes.`);
+  const sizes = new Set();
+  for (const price of prices) {
+    if (!isAmount(price.usd) || price.usd < 0 || price.usd > 9999.99) {
+      errors.push("Enter a price like 4.75.");
+      break;
+    }
+    const size = (text(price.size) ?? "").toLowerCase();
+    if (size.length > 24) errors.push("Keep size names short, like 12 oz.");
+    if (sizes.has(size)) {
+      errors.push(
+        size ? `"${text(price.size)}" is listed twice.` : "Name each size, like 12 oz and 16 oz.",
+      );
+      break;
+    }
+    sizes.add(size);
   }
   return errors;
 }
 
+const sizeKey = (price) => (price.size ?? "").toLowerCase();
+const sizeNames = (prices) => prices.map((price) => price.size ?? "no size").join(" / ");
+
+/**
+ * How one item's prices changed. Renaming sizes without touching a price (the
+ * reader's "small / large" corrected to "12 oz / 16 oz") is one "sizes" change;
+ * anything else is reported per size, in the reader's PriceChange shape.
+ */
+function diffPrices(previous, next) {
+  const before = previous.prices;
+  const after = next.prices;
+  const samePrices =
+    before.length === after.length &&
+    before.every((price, i) => toCents(price.usd) === toCents(after[i].usd));
+  if (samePrices) {
+    const renamed = before.some((price, i) => sizeKey(price) !== sizeKey(after[i]));
+    return {
+      prices: [],
+      fields: renamed
+        ? [
+            {
+              itemId: next.id,
+              item: previous.item,
+              field: "sizes",
+              from: sizeNames(before),
+              to: sizeNames(after),
+            },
+          ]
+        : [],
+    };
+  }
+
+  const prices = [];
+  const old = new Map(before.map((price) => [sizeKey(price), price]));
+  for (const price of after) {
+    const was = old.get(sizeKey(price));
+    if (!was || toCents(was.usd) !== toCents(price.usd)) {
+      prices.push({
+        item: previous.item,
+        size: price.size,
+        old_usd: was ? was.usd : null,
+        new_usd: price.usd,
+      });
+    }
+  }
+  const kept = new Set(after.map(sizeKey));
+  for (const price of before) {
+    if (!kept.has(sizeKey(price))) {
+      prices.push({ item: previous.item, size: price.size, old_usd: price.usd, new_usd: null });
+    }
+  }
+  return { prices, fields: [] };
+}
+
+const COMPARED_FIELDS = ["item", "section", "category", "available"];
+
 /**
  * What changed from `before` to `after`, matched by item id. Same shape the
- * agent writes, so the history screen reads both alike.
+ * agent writes (docs/contracts.md §1), so the history screen reads both alike.
  */
 export function diffMenus(before, after) {
   const beforeById = new Map(before.map((item) => [item.id, item]));
   const afterIds = new Set(after.map((item) => item.id));
 
-  const added = after.filter((item) => !beforeById.has(item.id)).map((item) => item.name);
-  const removed = before.filter((item) => !afterIds.has(item.id)).map((item) => item.name);
+  const added = after.filter((item) => !beforeById.has(item.id)).map((item) => item.item);
+  const removed = before.filter((item) => !afterIds.has(item.id)).map((item) => item.item);
+  const priceChanges = [];
   const changed = [];
   for (const item of after) {
     const previous = beforeById.get(item.id);
@@ -94,14 +200,31 @@ export function diffMenus(before, after) {
     for (const field of COMPARED_FIELDS) {
       const from = previous[field] ?? null;
       const to = item[field] ?? null;
-      if (from !== to) changed.push({ itemId: item.id, name: previous.name, field, from, to });
+      if (from !== to) changed.push({ itemId: item.id, item: previous.item, field, from, to });
+    }
+    const { prices, fields } = diffPrices(previous, item);
+    priceChanges.push(...prices);
+    changed.push(...fields);
+    // The owner looked at an item the reader was unsure of and kept it as it is.
+    if (needsCheck(previous) && !needsCheck(item)) {
+      changed.push({
+        itemId: item.id,
+        item: previous.item,
+        field: "checked",
+        from: false,
+        to: true,
+      });
     }
   }
-  return { added, changed, removed };
+  return { added, price_changes: priceChanges, changed, removed };
 }
 
 export const hasChanges = (changes) =>
-  changes.added.length + changes.changed.length + changes.removed.length > 0;
+  changes.added.length +
+    changes.price_changes.length +
+    changes.changed.length +
+    changes.removed.length >
+  0;
 
 export class NothingToSaveError extends Error {}
 
@@ -115,7 +238,7 @@ export function buildNextVersion({ currentVersion, currentItems, nextItems, uid,
   if (items.length > MAX_ITEMS) throw new Error(`A menu can have at most ${MAX_ITEMS} items.`);
   for (const item of items) {
     const errors = validateItem(item);
-    if (errors.length > 0) throw new Error(`${item.name || "An item"}: ${errors[0]}`);
+    if (errors.length > 0) throw new Error(`${item.item || "An item"}: ${errors[0]}`);
   }
   const changes = diffMenus(currentItems.map(normalizeItem), items);
   if (!hasChanges(changes)) throw new NothingToSaveError("Nothing has changed.");
@@ -131,47 +254,63 @@ export function buildNextVersion({ currentVersion, currentItems, nextItems, uid,
   };
 }
 
-/** Items grouped for display: categories alphabetically, uncategorised last. */
-export function groupByCategory(items) {
+/**
+ * Items grouped under the heading they were printed under, in the order the
+ * menu lists them. Items with no section go last, under "Other".
+ */
+export function groupBySection(items) {
   const groups = new Map();
   for (const item of items) {
-    const key = item.category ?? "Other";
+    const key = item.section ?? "Other";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
   }
   return [...groups.entries()]
-    .sort(([a], [b]) => (a === "Other") - (b === "Other") || a.localeCompare(b))
-    .map(([category, list]) => ({ category, items: list }));
+    .sort(([a], [b]) => (a === "Other") - (b === "Other"))
+    .map(([section, group]) => ({ section, items: group }));
 }
 
 const FIELD_LABELS = {
-  name: "name",
-  category: "category",
-  priceCents: "price",
-  description: "description",
+  item: "name",
+  section: "section",
+  category: "type",
   available: "availability",
+  sizes: "sizes",
 };
 
 function describe(field, value) {
-  if (field === "priceCents") return formatPrice(value);
   if (field === "available") return value ? "available" : "sold out";
+  if (field === "category") return CATEGORY_LABELS[value]?.toLowerCase() ?? String(value);
+  if (field === "sizes") return String(value);
   return value === null || value === undefined ? "none" : `"${value}"`;
+}
+
+function priceChangeLine(change) {
+  const name = change.size ? `${change.item} (${change.size})` : change.item;
+  if (!isAmount(change.old_usd)) return `• ${name} new at ${formatPrice(change.new_usd)}`;
+  if (!isAmount(change.new_usd))
+    return `• ${name} ${formatPrice(change.old_usd)} → no longer listed`;
+  return `• ${name} ${formatPrice(change.old_usd)} → ${formatPrice(change.new_usd)}`;
 }
 
 /**
  * One line per change, using the same + • – symbols as the iMessage summary.
- * Accepts the app's diff (names) and the agent's (MenuItems or names).
+ * Accepts the app's diff and the agent's (names or whole items).
  */
 export function changeLines(changes) {
-  const name = (entry) => (typeof entry === "string" ? entry : (entry?.name ?? "Item"));
+  const name = (entry) => (typeof entry === "string" ? entry : (entry?.item ?? "Item"));
   return [
     ...(changes?.added ?? []).map((entry) => ({ kind: "added", text: `+ ${name(entry)}` })),
+    ...(changes?.price_changes ?? []).map((change) => ({
+      kind: "changed",
+      text: priceChangeLine(change),
+    })),
     ...(changes?.changed ?? []).map((change) => ({
       kind: "changed",
       text:
-        change.field === "priceCents"
-          ? `• ${change.name} ${formatPrice(change.from)} → ${formatPrice(change.to)}`
-          : `• ${change.name}: ${FIELD_LABELS[change.field] ?? change.field} ${describe(change.field, change.from)} → ${describe(change.field, change.to)}`,
+        change.field === "checked"
+          ? `• ${change.item}: checked`
+          : `• ${change.item}: ${FIELD_LABELS[change.field] ?? change.field} ${describe(change.field, change.from)} → ${describe(change.field, change.to)}`,
     })),
     ...(changes?.removed ?? []).map((entry) => ({
       kind: "removed",

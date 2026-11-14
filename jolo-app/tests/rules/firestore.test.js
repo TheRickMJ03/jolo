@@ -72,8 +72,18 @@ function saveVersion(
     source: "app",
     createdAt: serverTimestamp(),
     createdBy: { uid, phone },
-    items: [{ id: "cortado", name: "Cortado", priceCents: 475, available: true }],
-    changes: { added: [], changed: [], removed: [] },
+    items: [
+      {
+        id: "cortado",
+        section: "Coffee",
+        item: "Cortado",
+        category: "drink",
+        prices: [{ size: null, usd: 4.75 }],
+        confidence: 1,
+        available: true,
+      },
+    ],
+    changes: { added: [], price_changes: [], changed: [], removed: [] },
     ...extra,
   });
   batch.update(doc(db, "cafes/cafe1"), {

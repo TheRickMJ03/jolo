@@ -21,31 +21,47 @@ initializeApp({ projectId: "demo-jolo" });
 const db = getFirestore();
 
 const daysAgo = (days) => Timestamp.fromDate(new Date(Date.now() - days * 86_400_000));
-const item = (id, name, category, priceCents, extra = {}) => ({
+// Items in the menu reader's shape (docs/contracts.md §1), plus id and available.
+const item = (id, name, section, category, prices, extra = {}) => ({
   id,
-  name,
+  section,
+  item: name,
   category,
-  priceCents,
-  description: null,
+  prices: typeof prices === "number" ? [{ size: null, usd: prices }] : prices,
+  add_ons: [],
+  variants: [],
+  tags: [],
+  confidence: 1,
   available: true,
   ...extra,
 });
+const reprice = (items, id, usd) =>
+  items.map((i) => (i.id === id ? { ...i, prices: [{ size: null, usd }] } : i));
 
 const v1 = [
-  item("espresso", "Espresso", "Coffee", 300),
-  item("cortado", "Cortado", "Coffee", 425),
-  item("latte", "Latte", "Coffee", 350),
-  item("muffin", "Muffin", "Bakery", 300),
+  item("espresso", "Espresso", "Coffee", "drink", 3),
+  item("cortado", "Cortado", "Coffee", "drink", 4.25),
+  // The reader missed the size heading here, so the sizes came back as small/large.
+  item(
+    "latte",
+    "Latte",
+    "Coffee",
+    "drink",
+    [
+      { size: "small", usd: 3.5 },
+      { size: "large", usd: 4.25 },
+    ],
+    { confidence: 0.7 },
+  ),
+  item("muffin", "Muffin", "Bakery", "food", 3),
 ];
-const v2 = [
-  ...v1.map((i) => (i.id === "cortado" ? { ...i, priceCents: 450 } : i)),
-  item("croissant", "Croissant", "Bakery", 375),
-];
+const v2 = [...reprice(v1, "cortado", 4.5), item("croissant", "Croissant", "Bakery", "food", 3.75)];
 const v3 = [
-  ...v2.map((i) => (i.id === "muffin" ? { ...i, priceCents: 325 } : i)),
-  item("cappuccino", "Cappuccino", "Coffee", 400, {
-    description: "Equal parts espresso, milk and foam",
-  }),
+  ...reprice(v2, "muffin", 3.25),
+  item("cappuccino", "Cappuccino", "Coffee", "drink", 4),
+  // Wall decoration read as an item: the kind of thing the owner should check.
+  item("fresh-daily", "Fresh Daily", "Bakery", "food", [], { confidence: 0.4 }),
+  item("oat-milk", "Oat Milk", "Extras", "modifier", 0.75),
 ];
 
 const versions = [
@@ -53,7 +69,7 @@ const versions = [
     version: 1,
     basedOn: 0,
     items: v1,
-    changes: { added: v1.map((i) => i.name), changed: [], removed: [] },
+    changes: { added: v1.map((i) => i.item), price_changes: [], changed: [], removed: [] },
     at: 20,
   },
   {
@@ -62,7 +78,8 @@ const versions = [
     items: v2,
     changes: {
       added: ["Croissant"],
-      changed: [{ itemId: "cortado", name: "Cortado", field: "priceCents", from: 425, to: 450 }],
+      price_changes: [{ item: "Cortado", size: null, old_usd: 4.25, new_usd: 4.5 }],
+      changed: [],
       removed: [],
     },
     at: 10,
@@ -72,8 +89,9 @@ const versions = [
     basedOn: 2,
     items: v3,
     changes: {
-      added: ["Cappuccino"],
-      changed: [{ itemId: "muffin", name: "Muffin", field: "priceCents", from: 300, to: 325 }],
+      added: ["Cappuccino", "Fresh Daily", "Oat Milk"],
+      price_changes: [{ item: "Muffin", size: null, old_usd: 3, new_usd: 3.25 }],
+      changed: [],
       removed: [],
     },
     at: 3,

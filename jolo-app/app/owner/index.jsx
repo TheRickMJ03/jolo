@@ -18,8 +18,9 @@ import { relativeDay } from "@/lib/insights";
 import {
   buildNextVersion,
   diffMenus,
-  groupByCategory,
+  groupBySection,
   hasChanges,
+  needsCheck,
   normalizeItem,
   NothingToSaveError,
   uniqueItemId,
@@ -39,10 +40,16 @@ export default function MenuScreen() {
   const saved = useMemo(() => (version?.items ?? []).map(normalizeItem), [version]);
   const items = draft ?? saved;
   const pending = useMemo(() => (draft ? diffMenus(saved, draft) : null), [draft, saved]);
-  const editedIds = useMemo(
-    () => new Set((pending?.changed ?? []).map((change) => change.itemId)),
-    [pending],
-  );
+  const editedIds = useMemo(() => {
+    if (!draft) return new Set();
+    const before = new Map(saved.map((item) => [item.id, JSON.stringify(item)]));
+    return new Set(
+      draft
+        .filter((item) => before.has(item.id) && before.get(item.id) !== JSON.stringify(item))
+        .map((item) => item.id),
+    );
+  }, [draft, saved]);
+  const toCheck = items.filter(needsCheck).length;
   const dirty = pending ? hasChanges(pending) : false;
 
   const update = (next) => {
@@ -55,7 +62,7 @@ export default function MenuScreen() {
       update(items.map((item) => (item.id === edited.id ? normalizeItem(edited) : item)));
     } else {
       const id = uniqueItemId(
-        edited.name,
+        edited.item,
         items.map((item) => item.id),
       );
       update([...items, normalizeItem({ ...edited, id })]);
@@ -119,6 +126,14 @@ export default function MenuScreen() {
           <Banner kind="error">Couldn't load your menu. Check your connection.</Banner>
         ) : null}
 
+        {toCheck > 0 ? (
+          <Banner kind="info">
+            {toCheck === 1
+              ? "JOLO wasn't sure about 1 item. It's marked \"Check this\"."
+              : `JOLO wasn't sure about ${toCheck} items. They're marked "Check this".`}
+          </Banner>
+        ) : null}
+
         {loading ? (
           <ActivityIndicator style={styles.spinner} color={Palette.primary} />
         ) : items.length === 0 ? (
@@ -127,9 +142,9 @@ export default function MenuScreen() {
             items here.
           </EmptyState>
         ) : (
-          groupByCategory(items).map(({ category, items: group }) => (
-            <View key={category} style={styles.section}>
-              <Text style={styles.category}>{category}</Text>
+          groupBySection(items).map(({ section, items: group }) => (
+            <View key={section} style={styles.section}>
+              <Text style={styles.sectionTitle}>{section}</Text>
               {group.map((item) => (
                 <MenuItemRow
                   key={item.id}
@@ -146,7 +161,7 @@ export default function MenuScreen() {
         <Button
           label="Add an item"
           variant="outline"
-          onPress={() => setEditing({ name: "", priceCents: null, available: true })}
+          onPress={() => setEditing({ item: "", category: "drink", prices: [], available: true })}
           style={styles.add}
         />
       </ScrollView>
@@ -183,7 +198,7 @@ const styles = StyleSheet.create({
   meta: { ...Typography.bodySm, color: Palette.onSurfaceVariant, marginBottom: Spacing.xs },
   spinner: { marginTop: Spacing.xl },
   section: { marginTop: Spacing.sm },
-  category: {
+  sectionTitle: {
     ...Typography.labelLg,
     color: Palette.secondary,
     textTransform: "uppercase",

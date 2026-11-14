@@ -17,7 +17,7 @@ export function toVersion(snapshot) {
     source: data.source ?? "imessage",
     scope: data.scope ?? "full",
     items: Array.isArray(data.items) ? data.items : [],
-    changes: data.changes ?? { added: [], changed: [], removed: [] },
+    changes: data.changes ?? { added: [], price_changes: [], changed: [], removed: [] },
     createdAt: data.createdAt?.toDate?.() ?? null,
     createdBy: data.createdBy ?? null,
   };

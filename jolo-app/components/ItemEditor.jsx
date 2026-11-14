@@ -3,6 +3,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,43 +13,78 @@ import {
 } from "react-native";
 import { Palette } from "@/constants/Colors";
 import { Radius, Spacing, Typography } from "@/constants/Typography";
-import { parsePriceInput, validateItem } from "@/lib/menu";
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  MAX_SIZES,
+  needsCheck,
+  parsePriceInput,
+  validateItem,
+} from "@/lib/menu";
 import { Banner } from "./Banner";
 import { Button } from "./Button";
 
-const priceText = (cents) => (typeof cents === "number" ? (cents / 100).toFixed(2) : "");
+const EMPTY_ROW = { size: "", price: "" };
+const toRows = (prices) =>
+  prices?.length
+    ? prices.map((price) => ({ size: price.size ?? "", price: price.usd.toFixed(2) }))
+    : [EMPTY_ROW];
 
 /**
  * Add or edit one item. `item` null = closed; an item without an id = new.
  * onSave gets the edited fields; onRemove deletes it (existing items only).
+ *
+ * Prices are one row per size, because that is how the menu reader returns
+ * them and size names are what it gets wrong most often.
  */
 export function ItemEditor({ item, onSave, onRemove, onClose }) {
   const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
+  const [section, setSection] = useState("");
+  const [category, setCategory] = useState("drink");
+  const [rows, setRows] = useState([EMPTY_ROW]);
   const [available, setAvailable] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!item) return;
-    setName(item.name ?? "");
-    setPrice(priceText(item.priceCents));
-    setCategory(item.category ?? "");
-    setDescription(item.description ?? "");
+    setName(item.item ?? "");
+    setSection(item.section ?? "");
+    setCategory(CATEGORIES.includes(item.category) ? item.category : "drink");
+    setRows(toRows(item.prices));
     setAvailable(item.available !== false);
     setError(null);
   }, [item]);
 
   const isNew = !item?.id;
+  const setRow = (index, patch) =>
+    setRows(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
   const save = () => {
-    const priceCents = parsePriceInput(price);
-    if (priceCents === undefined) {
-      setError("Enter a price like 4.75, or leave it empty.");
-      return;
+    const prices = [];
+    for (const row of rows) {
+      const size = row.size.trim();
+      const usd = parsePriceInput(row.price);
+      if (usd === undefined) {
+        setError("Enter a price like 4.75, or leave it empty.");
+        return;
+      }
+      if (usd === null) {
+        if (!size) continue; // an empty row: no price for this item
+        setError(`Enter a price for ${size}, or remove that size.`);
+        return;
+      }
+      prices.push({ size: size || null, usd });
     }
-    const edited = { ...item, name: name.trim(), priceCents, category, description, available };
+    // Saving from here means the owner has looked at it, so it no longer needs a check.
+    const edited = {
+      ...item,
+      item: name.trim(),
+      section,
+      category,
+      prices,
+      available,
+      confidence: 1,
+    };
     const [problem] = validateItem(edited);
     if (problem) {
       setError(problem);
@@ -77,6 +113,12 @@ export function ItemEditor({ item, onSave, onRemove, onClose }) {
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          {item && needsCheck(item) ? (
+            <Banner kind="info">
+              JOLO wasn't sure it read this one right. Check it against your menu, then save.
+            </Banner>
+          ) : null}
+
           <Field label="Name">
             <TextInput
               style={styles.input}
@@ -88,41 +130,87 @@ export function ItemEditor({ item, onSave, onRemove, onClose }) {
               accessibilityLabel="Name"
             />
           </Field>
-          <Field label="Price">
-            <View style={styles.priceRow}>
-              <Text style={styles.currency}>$</Text>
-              <TextInput
-                style={[styles.input, styles.priceInput]}
-                value={price}
-                onChangeText={setPrice}
-                placeholder="4.75"
-                placeholderTextColor={Palette.outline}
-                keyboardType="decimal-pad"
-                accessibilityLabel="Price in dollars"
+
+          <Field label={rows.length > 1 ? "Sizes and prices" : "Price"}>
+            {rows.map((row, i) => {
+              const nth = i === 0 ? "" : ` ${i + 1}`;
+              return (
+                <View key={i} style={styles.priceRow}>
+                  <TextInput
+                    style={[styles.input, styles.sizeInput]}
+                    value={row.size}
+                    onChangeText={(size) => setRow(i, { size })}
+                    placeholder={rows.length > 1 ? "12 oz" : "Size (optional)"}
+                    placeholderTextColor={Palette.outline}
+                    accessibilityLabel={`Size${nth}`}
+                  />
+                  <Text style={styles.currency}>$</Text>
+                  <TextInput
+                    style={[styles.input, styles.priceInput]}
+                    value={row.price}
+                    onChangeText={(price) => setRow(i, { price })}
+                    placeholder="4.75"
+                    placeholderTextColor={Palette.outline}
+                    keyboardType="decimal-pad"
+                    accessibilityLabel={`Price${nth} in dollars`}
+                  />
+                  {rows.length > 1 ? (
+                    <Pressable
+                      style={styles.removeSize}
+                      onPress={() => setRows(rows.filter((_, j) => j !== i))}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove size${nth}`}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.removeSizeText}>✕</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              );
+            })}
+            {rows.length < MAX_SIZES ? (
+              <Button
+                label="Add a size"
+                variant="ghost"
+                onPress={() => setRows([...rows, EMPTY_ROW])}
+                style={styles.addSize}
               />
-            </View>
+            ) : null}
           </Field>
-          <Field label="Category (optional)">
+
+          <Field label="Section (optional)">
             <TextInput
               style={styles.input}
-              value={category}
-              onChangeText={setCategory}
-              placeholder="Coffee"
+              value={section}
+              onChangeText={setSection}
+              placeholder="Espresso"
               placeholderTextColor={Palette.outline}
-              accessibilityLabel="Category"
+              accessibilityLabel="Section"
             />
           </Field>
-          <Field label="Description (optional)">
-            <TextInput
-              style={[styles.input, styles.multiline]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Equal parts espresso and steamed milk"
-              placeholderTextColor={Palette.outline}
-              multiline
-              accessibilityLabel="Description"
-            />
+
+          <Field label="Type">
+            <View style={styles.chips} accessibilityRole="radiogroup">
+              {CATEGORIES.map((value) => {
+                const selected = value === category;
+                return (
+                  <Pressable
+                    key={value}
+                    style={[styles.chip, selected && styles.chipSelected]}
+                    onPress={() => setCategory(value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={CATEGORY_LABELS[value]}
+                  >
+                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                      {CATEGORY_LABELS[value]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </Field>
+
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Available today</Text>
             <Switch
@@ -179,10 +267,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  multiline: { minHeight: 80, textAlignVertical: "top" },
   priceRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sizeInput: { flex: 1 },
   currency: { ...Typography.headlineSm, color: Palette.onSurfaceVariant },
-  priceInput: { flex: 1, fontVariant: ["tabular-nums"] },
+  priceInput: { width: 104, fontVariant: ["tabular-nums"] },
+  removeSize: { width: 32, height: 44, alignItems: "center", justifyContent: "center" },
+  removeSizeText: { ...Typography.bodyMd, color: Palette.onSurfaceVariant },
+  addSize: { alignSelf: "flex-start" },
+  chips: { flexDirection: "row", gap: 8 },
+  chip: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: "rgba(129,116,113,0.4)",
+    backgroundColor: Palette.surfaceContainerLowest,
+  },
+  chipSelected: { backgroundColor: Palette.secondary, borderColor: Palette.secondary },
+  chipText: { ...Typography.bodyMd, color: Palette.onSurface },
+  chipTextSelected: { color: Palette.onSecondary, fontFamily: "PlusJakartaSans_600SemiBold" },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   switchLabel: { ...Typography.bodyMd, color: Palette.onSurface },
 });

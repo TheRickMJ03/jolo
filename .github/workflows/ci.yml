@@ -10,6 +10,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  reader:
+    name: Menu reader (menu_reader)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      # The tests need no model server and never load PaddleOCR, so the heavy
+      # OCR packages in requirements.txt are left out here.
+      - run: grep -v -E '^(paddleocr|paddlex)==' requirements.txt > /tmp/requirements-ci.txt
+      - run: python -m pip install -r /tmp/requirements-ci.txt
+      - run: python -m pytest -q
+
   bridge:
     name: iMessage bridge (spectrum-archive-app)
     runs-on: ubuntu-latest

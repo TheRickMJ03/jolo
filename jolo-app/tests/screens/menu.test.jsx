@@ -7,21 +7,45 @@ const mockCafe = {
   currentMenuVersion: 3,
   menuUpdatedAt: new Date(),
 };
+// What the agent saves: the menu reader's items, plus id and available.
 const mockItems = [
   {
     id: "cortado",
-    name: "Cortado",
-    category: "Coffee",
-    priceCents: 450,
-    description: null,
+    section: "Coffee",
+    item: "Cortado",
+    category: "drink",
+    prices: [{ size: null, usd: 4.5 }],
+    confidence: 1,
+    available: true,
+  },
+  {
+    id: "latte",
+    section: "Coffee",
+    item: "Latte",
+    category: "drink",
+    prices: [
+      { size: "small", usd: 3.5 },
+      { size: "large", usd: 4.25 },
+    ],
+    confidence: 0.7,
     available: true,
   },
   {
     id: "muffin",
-    name: "Muffin",
-    category: "Bakery",
-    priceCents: 325,
-    description: null,
+    section: "Bakery",
+    item: "Muffin",
+    category: "food",
+    prices: [{ size: null, usd: 3.25 }],
+    confidence: 1,
+    available: true,
+  },
+  {
+    id: "fresh-daily",
+    section: "Bakery",
+    item: "Fresh Daily",
+    category: "food",
+    prices: [],
+    confidence: 0.4,
     available: true,
   },
 ];
@@ -47,12 +71,56 @@ beforeEach(() => {
   saveMenuVersion.mockReset().mockImplementation(async (_cafeId, next) => next.version);
 });
 
-it("shows the live menu grouped by category", async () => {
+it("shows the live menu grouped by section, with a price per size", async () => {
   await render(<MenuScreen />);
   expect(screen.getByText("Barbara's")).toBeTruthy();
   expect(screen.getByText(/Version 3 · updated today by text/)).toBeTruthy();
   expect(screen.getByText("Coffee")).toBeTruthy();
   expect(screen.getByLabelText("Cortado, $4.50")).toBeTruthy();
+  expect(screen.getByLabelText("Latte, small $3.50 · large $4.25")).toBeTruthy();
+});
+
+it("marks the item the reader wasn't sure of, until the owner saves it", async () => {
+  await render(<MenuScreen />);
+  expect(screen.getByText(/JOLO wasn't sure about 1 item/)).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Fresh Daily, No price, check this"));
+  expect(await screen.findByText(/JOLO wasn't sure it read this one right/)).toBeTruthy();
+  await fireEvent.press(screen.getByRole("button", { name: "Save item" }));
+
+  expect(await screen.findByText("• Fresh Daily: checked")).toBeTruthy();
+  expect(screen.queryByText(/JOLO wasn't sure about/)).toBeNull();
+  expect(screen.getByLabelText("Fresh Daily, No price")).toBeTruthy();
+});
+
+it("fixes the size names the reader got wrong", async () => {
+  await render(<MenuScreen />);
+  await fireEvent.press(screen.getByLabelText("Latte, small $3.50 · large $4.25"));
+  await fireEvent.changeText(await screen.findByLabelText("Size"), "12 oz");
+  await fireEvent.changeText(screen.getByLabelText("Size 2"), "16 oz");
+  await fireEvent.press(screen.getByRole("button", { name: "Save item" }));
+  expect(await screen.findByText("• Latte: sizes small / large → 12 oz / 16 oz")).toBeTruthy();
+
+  await fireEvent.press(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(saveMenuVersion).toHaveBeenCalledTimes(1));
+  const [, next] = saveMenuVersion.mock.calls[0];
+  expect(next.items.find((item) => item.id === "latte").prices).toEqual([
+    { size: "12 oz", usd: 3.5 },
+    { size: "16 oz", usd: 4.25 },
+  ]);
+});
+
+it("adds a size to an item", async () => {
+  await render(<MenuScreen />);
+  await fireEvent.press(screen.getByLabelText("Cortado, $4.50"));
+  await fireEvent.changeText(await screen.findByLabelText("Size"), "8 oz");
+  await fireEvent.press(screen.getByRole("button", { name: "Add a size" }));
+  await fireEvent.changeText(screen.getByLabelText("Size 2"), "12 oz");
+  await fireEvent.press(screen.getByRole("button", { name: "Save item" }));
+  expect(screen.getByText("Enter a price for 12 oz, or remove that size.")).toBeTruthy();
+
+  await fireEvent.changeText(screen.getByLabelText("Price 2 in dollars"), "5.25");
+  await fireEvent.press(screen.getByRole("button", { name: "Save item" }));
+  expect(await screen.findByLabelText("Cortado, 8 oz $4.50 · 12 oz $5.25")).toBeTruthy();
 });
 
 it("marks an item sold out and saves it as version 4", async () => {
