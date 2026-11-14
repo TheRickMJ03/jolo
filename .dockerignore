@@ -1,0 +1,4 @@
+# Only the trends job is built from the repo root (recommend/Dockerfile).
+*
+!recommend
+recommend/__pycache__

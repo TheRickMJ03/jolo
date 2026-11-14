@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reader:
+    name: Menu reader (menu_reader) and agent brain (jolo_agent)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-agent.txt
+      # The tests need no model server and never load PaddleOCR, so the heavy
+      # OCR packages in requirements.txt are left out here.
+      - run: grep -v -E '^(paddleocr|paddlex)==' requirements.txt > /tmp/requirements-ci.txt
+      # The agent tests use fake embedders, and the brain falls back to keyword
+      # search without torch, so skip torch and sentence-transformers. Otherwise
+      # pip would pull the multi-GB GPU build of torch.
+      - run: grep -v -i -E '^(torch|sentence-transformers)' requirements-agent.txt > /tmp/requirements-agent-ci.txt
+      - run: python -m pip install -r /tmp/requirements-ci.txt
+      - run: python -m pip install -r /tmp/requirements-agent-ci.txt -c /tmp/requirements-ci.txt
+      - run: python -m pytest -q
+
+  bridge:
+    name: iMessage bridge (spectrum-archive-app)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: spectrum-archive-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: spectrum-archive-app/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      # No credentials, no network: everything runs against local Parquet and a stub agent.
+      - run: npm test
+
+  app:
+    name: Owner app (jolo-app)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jolo-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: jolo-app/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - name: App config resolves for every variant
+        run: |
+          APP_VARIANT=development npx expo config --type public > /dev/null
+          APP_VARIANT=production npx expo config --type public > /dev/null
+      - name: Expo dependency check
+        run: npx expo-doctor
+
+  firestore-rules:
+    name: Firestore rules (jolo-app)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jolo-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: jolo-app/package-lock.json
+      # The Firestore emulator needs Java 21+.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('jolo-app/package-lock.json') }}
+      - run: npm ci
+      - run: npm run test:rules
