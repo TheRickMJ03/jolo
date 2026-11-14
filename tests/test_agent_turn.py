@@ -318,3 +318,23 @@ def test_no_token_set_means_open_on_localhost(tmp_path, monkeypatch):
     monkeypatch.delenv("JOLO_API_KEY", raising=False)
     client, _brain = turn_client(tmp_path)
     assert client.get("/health").status_code == 200
+
+
+def test_a_confirm_after_the_app_edited_the_menu_shows_the_update_again_not_a_save(tmp_path):
+    client, brain = turn_client(tmp_path, GOOD_READ)
+    open_update(client)
+    real_save = brain.store.save_menu_version
+
+    def app_edits_first(*args, **kwargs):
+        brain.store.save_menu_version = real_save
+        real_save("barbaras", [item("Cortado", 4.95), item("Latte", 5.0), item("Cheese Empanada", 3.5, category="food")],
+                  source="app")
+        return real_save(*args, **kwargs)
+
+    brain.store.save_menu_version = app_edits_first
+    found = actions(client, OWNER, {"type": "confirm", "confirmed": True})
+    assert types(found) == ["say", "confirm_changes"]
+    assert found[0]["text"] == messages.MENU_CHANGED
+    assert brain.store.get_cafe("barbaras").current_version == 2          # only the app's version so far
+    assert types(actions(client, OWNER, {"type": "confirm", "confirmed": True})) == ["menu_updated"]
+    assert brain.store.get_cafe("barbaras").current_version == 3

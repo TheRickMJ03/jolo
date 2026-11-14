@@ -16,6 +16,10 @@ def versions_path(cafe_id):
     return f"cafes/{cafe_id}/menu_versions"
 
 
+class StaleMenu(Exception):
+    """The café's menu changed (in the app, say) after the update was prepared."""
+
+
 class Store(ABC):
     def __init__(self):
         self._lock = threading.RLock()
@@ -84,32 +88,48 @@ class Store(ABC):
         versions = [MenuVersion.model_validate(doc) for doc in self._list(versions_path(cafe_id))]
         return sorted(versions, key=lambda version: version.version)
 
-    def _new_version(self, cafe, items, hours, source, scope, changes):
-        """The next MenuVersion and the café document that points at it."""
+    def _new_version(self, cafe, items, hours, source, scope, changes, previous=None):
+        """The next MenuVersion and the café document that points at it.
+
+        previous: the version being replaced. Items the owner marked sold out in the app stay sold out."""
+        items = [item if isinstance(item, MenuItem) else MenuItem.model_validate(item) for item in items]
+        names = {item.item for item in items}
         version = MenuVersion(
             cafe_id=cafe.cafe_id,
             version=cafe.current_version + 1,
-            items=[item if isinstance(item, MenuItem) else MenuItem.model_validate(item) for item in items],
+            items=items,
             hours=hours,
             source=source,
             scope=scope,
             changes=changes or Changes(),
+            sold_out=[name for name in (previous.sold_out if previous else []) if name in names],
         )
         cafe = cafe.model_copy(update={"current_version": version.version, "updated_at": version.created_at})
         if hours:
             cafe.hours_text = hours
         return version, cafe
 
-    def save_menu_version(self, cafe_id, items, hours=None, source="photo", scope=None, changes=None):
-        """Write version n+1 and make it current. Version n stays as history."""
+    def save_menu_version(self, cafe_id, items, hours=None, source="photo", scope=None, changes=None,
+                          expected_version=None):
+        """Write version n+1 and make it current. Version n stays as history.
+
+        expected_version: the version the update was prepared against. When the café has moved on since,
+        nothing is written and StaleMenu is raised."""
         with self._lock:
             cafe = self.get_cafe(cafe_id)
             if cafe is None:
                 raise KeyError(f"No café {cafe_id!r}")
-            version, cafe = self._new_version(cafe, items, hours, source, scope, changes)
+            if expected_version is not None and cafe.current_version != expected_version:
+                raise StaleMenu(cafe_id)
+            previous = self.get_menu_version(cafe_id, cafe.current_version) if cafe.current_version else None
+            version, cafe = self._new_version(cafe, items, hours, source, scope, changes, previous)
             self._set(versions_path(cafe_id), str(version.version), version.model_dump())
             self._set("cafes", cafe_id, cafe.model_dump())
             return version
+
+    def menu_versions(self):
+        """{cafe_id: current menu version} for every café: a cheap way to see which menus changed."""
+        return {cafe.cafe_id: cafe.current_version for cafe in self.list_cafes()}
 
     # ---------- drafts ----------
 

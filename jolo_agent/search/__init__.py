@@ -12,7 +12,9 @@ def open_search(store, config):
     """(CafeSearch, notes). Builds the index from the store when it is empty."""
     embedder, reranker, notes = load_models(config)
     index = SearchIndex(REPO / config["agent"]["search"]["index_dir"], embedder)
-    if not index.rows:
+    settings = config["agent"]["search"]
+    # Firestore is edited by the app too, so an index left from an earlier run may be out of date.
+    if not index.rows or settings.get("rebuild_on_start", False):
         index.rebuild(store_docs(store))
         notes.append(f"built the search index: {len(index.rows)} documents")
     elif embedder and not index.has_vectors:

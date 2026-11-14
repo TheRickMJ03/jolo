@@ -114,6 +114,8 @@ class Brain:
         self.notes = list(notes)
         self._history = defaultdict(lambda: deque(maxlen=2 * self.settings["history_turns"]))
         self.last = {}      # what happened in the latest message, for the evaluation scripts
+        self._indexed = None            # {cafe_id: menu version} as of the last time the index was brought up to date
+        self._stop = threading.Event()
 
     # ---------- entry point ----------
 
@@ -276,6 +278,46 @@ class Brain:
         version = self.store.get_current_menu(cafe_id)
         self.search.index.reindex_cafe(cafe_id, cafe_docs(cafe, version.items if version else []))
 
+    def mark_indexed(self):
+        """Remember which menu versions the search index was just built from."""
+        self._indexed = self.store.menu_versions()
+
+    def refresh_index(self):
+        """Re-index the cafés whose menu version changed since the last look. The app edits Firestore directly,
+        so the index goes stale without this. Returns the ids that were re-indexed."""
+        current = self.store.menu_versions()
+        known = self._indexed or {}
+        changed = [cafe_id for cafe_id, version in current.items() if known.get(cafe_id) != version]
+        for cafe_id in changed:
+            try:
+                self.reindex(cafe_id)
+            except Exception:
+                log.exception("Could not re-index %s", cafe_id)
+                current.pop(cafe_id, None)       # try again next time
+        self._indexed = current
+        return changed
+
+    def start_refresher(self, every_seconds):
+        """Check for menus edited elsewhere every few seconds, in a background thread. 0 = off."""
+        if not every_seconds or every_seconds <= 0:
+            return None
+
+        def loop():
+            while not self._stop.wait(every_seconds):
+                try:
+                    changed = self.refresh_index()
+                    if changed:
+                        log.info("Re-indexed %d café(s) whose menu changed elsewhere: %s", len(changed), ", ".join(changed))
+                except Exception:
+                    log.exception("The index refresh failed")
+
+        thread = threading.Thread(target=loop, daemon=True, name="index-refresh")
+        thread.start()
+        return thread
+
+    def stop(self):
+        self._stop.set()
+
     def warm(self):
         """Load the retrieval models now, so the first customer doesn't wait for them."""
         try:
@@ -308,4 +350,6 @@ def build_brain(config=None):
     config = config or load_config()
     store = open_store(config)
     search, notes = open_search(store, config)
-    return Brain(config, store, ChatModel(config), search, notes=notes)
+    brain = Brain(config, store, ChatModel(config), search, notes=notes)
+    brain.mark_indexed()
+    return brain

@@ -20,6 +20,7 @@ from menu_reader.compare import _key
 from menu_reader.merge import merge_results
 from menu_reader.schema import MenuResult
 from jolo_agent import messages
+from jolo_agent.store.base import StaleMenu
 from jolo_agent.menu_ops import (EditError, apply_op, changes_between, check_priority, final_items,
                                  has_generic_sizes, items_to_check, replay_ops)
 from jolo_agent.store.models import Draft
@@ -266,14 +267,23 @@ class MenuUpdateFlow:
                 return messages.STILL_READING
             if draft.scope is None:
                 return messages.ASK_SCOPE
+            cafe = self.store.get_cafe(draft.cafe_id)
+            seen_version = cafe.current_version if cafe else None
             current, new_items, changes = self._preview(draft)
             if not (changes.new_items or changes.price_changes or changes.missing_from_photo):
                 self.store.delete_draft(phone_hash)
                 return messages.NO_CHANGES
             if not new_items:
                 return messages.EMPTY_MENU
-            version = self.store.save_menu_version(draft.cafe_id, new_items, hours=draft.hours,
-                                                   source=draft.source, scope=draft.scope, changes=changes)
+            try:
+                version = self.store.save_menu_version(draft.cafe_id, new_items, hours=draft.hours,
+                                                       source=draft.source, scope=draft.scope, changes=changes,
+                                                       expected_version=seen_version)
+            except StaleMenu:
+                # The menu was edited in the app while the owner was deciding. Nothing was written: show the
+                # update again against the menu as it is now.
+                self.outcomes[phone_hash] = {"kind": "stale"}
+                return messages.MENU_CHANGED + "\n" + self._present(draft)
             self.store.add_event("menu_update", draft.cafe_id, phone_hash, {
                 "version": version.version, "new_items": len(changes.new_items),
                 "price_changes": len(changes.price_changes), "removed": len(changes.missing_from_photo)})

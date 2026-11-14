@@ -116,10 +116,11 @@ def config():
     return loaded
 
 
-def seeded_store():
-    """Two cafés. Barbara's has an owner and a three-item menu (version 1)."""
-    store = MemoryStore()
+def seeded_store(store=None):
+    """Two cafés. Barbara's has an owner and a three-item menu (version 1). store: fill this one instead."""
+    store = store if store is not None else MemoryStore()
     store.upsert_cafe(Cafe(cafe_id="barbaras", name="Barbara's", owner_phone_hash=hash_phone(OWNER),
+                           owner_phone="+16095550100",
                            lat=40.3509, lng=-74.6606, hours=WEEK, vibe="warm, family-run",
                            summary="Brazilian café with espresso drinks and empanadas."))
     store.upsert_user(User(phone_hash=hash_phone(OWNER), role="owner", cafe_id="barbaras"))
