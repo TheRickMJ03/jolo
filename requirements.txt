@@ -20,7 +20,9 @@ pandas==3.1.1
 PyYAML==6.0.2
 rapidfuzz==3.14.6
 scipy==1.18.1
-
+httpx
+fastapi
+langchain-core
 # Talking to model endpoints (already installed as a PaddleOCR dependency)
 requests==2.34.2
 
