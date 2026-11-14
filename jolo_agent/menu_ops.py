@@ -50,9 +50,11 @@ def find_item(items, name, threshold=80):
     if scored and scored[0][0] >= threshold and (len(scored) == 1 or scored[0][0] - scored[1][0] >= 5):
         return scored[0][1], []
 
-    # The owner used part of the name: "cortado" for "Cortado aka Garoto or Pingado".
+    # The owner used part of the name: "cortado" for "Cortado aka Garoto or Pingado". Only in that
+    # direction: "oat latte" is not "Latte", it is a different item, and must not reprice it.
+    words = set(wanted.split())
     partial = [index for index, item in enumerate(items)
-               if fuzz.token_set_ratio(wanted, _key(item.item)) >= 90]
+               if words <= set(_key(item.item).split()) and fuzz.token_set_ratio(wanted, _key(item.item)) >= 90]
     if len(partial) == 1:
         return partial[0], []
     return None, [items[index].item for index in partial[:6]]
@@ -232,7 +234,13 @@ def items_to_check(new_items, changes, first_menu):
     else:
         names = {_key(name) for name in changes.new_items} | {_key(change.item) for change in changes.price_changes}
         touched = [item for item in new_items if _key(item.item) in names]
-    return sorted(touched, key=lambda item: item.confidence)     # stable: menu order within a tie
+    return sorted(touched, key=check_priority)                   # stable: menu order within a tie
+
+
+def check_priority(item):
+    """Sort key: what the owner should look at first. Least confident first; on a tie (the reader
+    gives many items 1.0) dishes before add-ons, and items with no price before priced ones."""
+    return (item.confidence, item.category == "modifier", bool(item.prices))
 
 
 def has_generic_sizes(items):
