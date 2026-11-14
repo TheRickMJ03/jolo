@@ -41,6 +41,11 @@ export async function handleJolo(ctx: JoloContext): Promise<void> {
     // A pending question is answered by text. A photo sent meanwhile is another
     // part of the same menu: it goes to the agent, which merges it in.
     if (state.pending && !hasPhotos) {
+      // A voice note or a file isn't an answer; say so instead of re-asking the question.
+      if (!content.text && content.unsupported) {
+        await say(copy.unsupported);
+        return;
+      }
       const event = answerEvent(state.pending, content.text);
       if (!event) {
         await say(state.pending === "scope" ? copy.askScopeAgain : copy.confirmAgain);

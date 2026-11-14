@@ -239,6 +239,54 @@ test("the two reader failures have their own messages and keep the open question
   assert.match(summary!, /^Found 2 new items/);
 });
 
+test("a HEIC that arrives unlabelled is still a photo, passed through byte for byte", async () => {
+  const via = await startStub();
+  const c = chat(OWNER, via);
+  await onboard(c, "Barbara", "owner");
+  const bytes = Buffer.concat([Buffer.from([0, 0, 0, 0x24]), Buffer.from("ftypheic"), Buffer.from("pixels")]);
+  const before = c.sent.length;
+  await respond(
+    c.space,
+    fakeMessage(c.space, {
+      content: {
+        type: "attachment",
+        id: "a",
+        name: "IMG_0042.HEIC",
+        mimeType: "application/octet-stream",
+        size: bytes.length,
+        read: async () => bytes,
+      },
+      senderId: OWNER,
+    }),
+    "stream",
+    { agent: via },
+  );
+  assert.deepEqual(c.sent.slice(before), [READING, "Is this your full menu, or just part of it?"]);
+  const sentPhoto = requests.at(-1)!.event;
+  assert.equal(sentPhoto.type === "message" && sentPhoto.photos[0]?.mime_type, "image/heic");
+  assert.equal(sentPhoto.type === "message" && sentPhoto.photos[0]?.data_base64, bytes.toString("base64"));
+
+  // A generic file that isn't an image is still refused.
+  const after = c.sent.length;
+  await respond(
+    c.space,
+    fakeMessage(c.space, {
+      content: {
+        type: "attachment",
+        id: "b",
+        name: "notes.bin",
+        mimeType: "application/octet-stream",
+        size: 20,
+        read: async () => Buffer.from("just some text here!"),
+      },
+      senderId: OWNER,
+    }),
+    "stream",
+    { agent: via },
+  );
+  assert.deepEqual(c.sent.slice(after), ["I can only read photos and text for now."]);
+});
+
 test("too many photos and unsupported content", async () => {
   const c = chat(OWNER);
   await onboard(c, "Barbara", "owner");

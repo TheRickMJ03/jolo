@@ -59,7 +59,7 @@ cd spectrum-archive-app && npm run agent:stub
 cd spectrum-archive-app && AGENT_URL=http://127.0.0.1:8788 npm start
 ```
 
-Run F1 to F6 and F8 by typing. Drag an image file into the terminal to send a photo.
+Run F1 to F8 by typing. To send a photo, drag an image file into the terminal or paste its path, then press Enter. A path typed by hand is sent as text, not as a photo.
 
 - The stub does not read photos: every photo "shows" the same 2 new items and 3 price changes.
 - For F6, send a file whose name contains `blurry`. For F7, one whose name contains `offline`.

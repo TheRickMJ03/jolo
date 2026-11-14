@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { parseActions } from "../src/jolo/agent-client.ts";
+import { imageType, sniffImage } from "../src/jolo/content.ts";
 import { confirmSummary, formatPrice, formatPrices } from "../src/jolo/copy.ts";
 import { parseConfirm, parseConfirmReply, parseName, parseRole, parseScope } from "../src/jolo/parse.ts";
 
@@ -138,4 +139,21 @@ test("agent responses are validated; unknown actions are ignored", () => {
     parseActions({ actions: [{ type: "unreadable_photo", reason: "blurry" }, { type: "reader_down" }] }),
     [{ type: "unreadable_photo", reason: "blurry" }, { type: "reader_down" }],
   );
+});
+
+test("photos are recognised even when the transport doesn't label them", () => {
+  assert.equal(imageType("image/heic", "IMG_1.HEIC"), "image/heic");
+  assert.equal(imageType("IMAGE/JPEG; charset=binary", "a"), "image/jpeg");
+  // The terminal, and sometimes iMessage, send a HEIC as a generic binary file.
+  assert.equal(imageType("application/octet-stream", "IMG_0042.HEIC"), "image/heic");
+  assert.equal(imageType("", "menu.jpg"), "image/jpeg");
+  assert.equal(imageType("application/pdf", "menu.jpg"), undefined, "a labelled non-image stays a non-image");
+  assert.equal(imageType("application/octet-stream", "notes.txt"), undefined);
+
+  const heic = Buffer.concat([Buffer.from([0, 0, 0, 0x24]), Buffer.from("ftypheic"), Buffer.alloc(8)]);
+  assert.equal(sniffImage(heic), "image/heic");
+  assert.equal(imageType("application/octet-stream", "no-extension", heic), "image/heic");
+  assert.equal(sniffImage(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0])), "image/jpeg");
+  assert.equal(sniffImage(Buffer.from("RIFF0000WEBPVP8 ")), "image/webp");
+  assert.equal(sniffImage(Buffer.from("just some text here")), undefined);
 });
