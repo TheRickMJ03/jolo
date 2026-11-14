@@ -115,6 +115,8 @@ export default function MenuScreen() {
         <Text style={styles.cafe} accessibilityRole="header">
           {cafe.name}
         </Text>
+        {cafe.ownerName ? <Text style={styles.meta}>{cafe.ownerName}</Text> : null}
+        {cafe.address ? <Text style={styles.meta}>{cafe.address}</Text> : null}
         <Text style={styles.meta}>
           {cafe.currentMenuVersion > 0
             ? `Version ${cafe.currentMenuVersion}${cafe.menuUpdatedAt ? ` · updated ${relativeDay(cafe.menuUpdatedAt)}` : ""}${version?.source === "imessage" ? " by text" : ""}`

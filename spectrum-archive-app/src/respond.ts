@@ -6,6 +6,7 @@ import { archiveInbound, rememberSpace, sendAndArchive } from "./archive/send.ts
 import { forget } from "./history.ts";
 import { joloAgent, type AgentClient } from "./jolo/agent-client.ts";
 import { handleJolo, joloState } from "./jolo/conversation.ts";
+import { linkOwnerCafe, type LinkedCafe } from "./jolo/link-cafe.ts";
 import { llmEnabled, LlmError } from "./llm.ts";
 
 const SIGNAL_CONTENT: ReadonlySet<string> = new Set([
@@ -22,6 +23,8 @@ export type InboundSource = "stream" | "webhook";
 export interface RespondOptions {
   /** The JOLO agent. Defaults to the one AGENT_URL configures; undefined = JOLO flow off. */
   agent?: AgentClient;
+  /** Writes the owner's café. Defaults to the Firestore emulator. */
+  linkOwner?: (profile: LinkedCafe) => Promise<void>;
 }
 
 // Shared by both inbound paths. `app.webhook()` is stateless and does not feed
@@ -69,7 +72,9 @@ export async function respond(
 
   // JOLO flow (AGENT_URL set): onboarding, then Bhavesh's agent. Photos too.
   if (agent) {
-    await space.responding(() => handleJolo({ space, message, agent, say }));
+    await space.responding(() =>
+      handleJolo({ space, message, agent, say, linkOwner: options.linkOwner ?? linkOwnerCafe }),
+    );
     return;
   }
 

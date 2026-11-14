@@ -1,7 +1,7 @@
 // Reading short, casual replies. Each parser returns null when the reply is
 // unclear — empty, matching neither side, or matching both — so the bridge
 // asks again instead of guessing.
-import type { Role, Scope } from "./types.ts";
+import type { OwnerProfile, Role, Scope } from "./types.ts";
 
 /** Lowercased words; apostrophes kept so "don't" stays one word. */
 function words(text: string): string[] {
@@ -66,7 +66,7 @@ export function parseScope(text: string): Scope | null {
 }
 
 const OWNER = new Set(["owner", "own", "owns", "owning", "run", "manage", "manager", "1"]);
-const CUSTOMER = new Set(["customer", "guest", "looking", "visitor", "patron", "buyer", "2"]);
+const CUSTOMER = new Set(["customer", "user", "users", "guest", "looking", "visitor", "patron", "buyer", "2"]);
 
 export function parseRole(text: string): Role | null {
   return classify<Role>(text, [
@@ -77,6 +77,34 @@ export function parseRole(text: string): Role | null {
 
 const NAME_PREFIX =
   /^(?:(?:hi|hey|hello|yo)[,!.\s]+)?(?:i'm|im|i am|my name is|my name's|name's|names|it's|its|this is|call me)\s+/i;
+
+const LABELED =
+  /name\s*(?:is|:)\s*(.+?)(?:[,;\n]+|\s{2,})\s*(?:business(?:\s+name)?|cafe|café)\s*(?:is|:)\s*(.+?)(?:[,;\n]+|\s{2,})\s*(?:location|address)\s*(?:is|:)\s*(.+)/i;
+
+/**
+ * "Isaiah, Barbara's, Westfield NJ" or a labeled sentence. Extra commas stay
+ * in the location, so a street address still counts as one field. Null when
+ * any of the three is missing.
+ */
+export function parseOwnerProfile(text: string): OwnerProfile | null {
+  const raw = text.trim();
+  const labeled = LABELED.exec(raw);
+  const parts = labeled
+    ? [labeled[1]!, labeled[2]!, labeled[3]!]
+    : raw.split(/\n+|[,;]/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 3) return null;
+  const name = parseName(parts[0]!);
+  const businessName = cleanPlace(parts[1]!);
+  const location = cleanPlace(parts.slice(2).join(", "));
+  if (!name || !businessName || !location) return null;
+  return { name, businessName, location };
+}
+
+function cleanPlace(value: string): string | null {
+  const trimmed = value.replace(/[.!?,;:]+$/u, "").trim();
+  if (!trimmed || trimmed.length > 80 || !/[\p{L}\p{N}]/u.test(trimmed)) return null;
+  return trimmed;
+}
 
 /** "I'm Barbara!" → "Barbara". Null for empty, overlong or sentence-like replies. */
 export function parseName(text: string): string | null {

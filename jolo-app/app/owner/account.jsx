@@ -24,9 +24,12 @@ export default function AccountScreen() {
         </Text>
 
         <View style={styles.card}>
-          <Row icon="cafe-outline" label="Café" value={cafe.name} />
+          {cafe.ownerName ? (
+            <Row icon="person-outline" label="Name" value={cafe.ownerName} />
+          ) : null}
+          <Row icon="cafe-outline" label="Business" value={cafe.name} />
           {cafe.address ? (
-            <Row icon="location-outline" label="Address" value={cafe.address} />
+            <Row icon="location-outline" label="Location" value={cafe.address} />
           ) : null}
           <Row icon="call-outline" label="Signed in as" value={formatPhone(user?.phoneNumber)} />
         </View>

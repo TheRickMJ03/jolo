@@ -73,11 +73,19 @@ export type AgentAction =
   | { type: "reader_down" };
 
 /** Per-conversation state the bridge keeps (in the memory store, keyed by space id). */
+export interface OwnerProfile {
+  name: string;
+  businessName: string;
+  location: string;
+}
+
 export interface JoloState {
   name?: string;
+  businessName?: string;
+  location?: string;
   role?: Role;
   /** Which onboarding question is waiting for an answer. */
-  onboarding?: "name" | "role";
+  onboarding?: "role" | "details";
   /** Which owner question is waiting for an answer. */
   pending?: "scope" | "confirm";
   /** A menu update is open: more photos join it instead of starting a new one. */

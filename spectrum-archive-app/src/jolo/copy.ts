@@ -2,18 +2,21 @@
 // docs/conversation-design.md — change both together.
 //
 // Plain text only: iMessage shows asterisks literally, so emphasis uses quotes.
-import type { MenuChanges, MenuItem, Price, PriceChange, Role } from "./types.ts";
+import type { MenuChanges, MenuItem, Price, PriceChange } from "./types.ts";
 
 export const copy = {
   // Onboarding
-  greeting: "Hi! I'm JOLO ☕ I keep café menus up to date. What's your name?",
-  askNameAgain: "Sorry, what should I call you? Just your first name is fine.",
-  askRole: (name: string) => `Nice to meet you, ${name}! Are you a café owner or a customer?`,
-  askRoleAgain: 'Just reply "owner" if you run a café, or "customer" if you\'re looking for one.',
-  welcome: (role: Role) =>
-    role === "owner"
-      ? 'Great! I\'ll match you to your café by this phone number. Whenever your menu changes, text me a photo of it and say "update the menu".'
-      : 'Great! Ask me about any café\'s menu, like "What\'s on the menu at Barbara\'s?"',
+  askRole: "Are you an owner or a user?",
+  askRoleAgain: 'Reply "owner" if you run the café, or "user" if you don\'t.',
+  welcomeUser:
+    "Welcome to JOLO ☕ Sign in to the JOLO app with this phone number to find cafés near you and see what they're serving.",
+  askDetails: "What is your name, business name, and location?",
+  askDetailsAgain: 'Send all three, separated by commas. For example: "Isaiah, Barbara\'s, Westfield".',
+  welcomeOwner: (name: string, business: string, location: string) =>
+    `Thanks, ${name}. ${business} in ${location} is linked to this phone number. Sign in to the app with it and you'll see this there.`,
+  linkFailed:
+    "I have that, but I couldn't update the app just now. Text me those three again in a minute.",
+  needPhone: "I can only link a café to a phone number, and I couldn't read one on this chat.",
   resendPhoto: "Send that photo again and I'll read it.",
 
   // Owner menu update

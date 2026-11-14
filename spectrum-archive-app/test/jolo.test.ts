@@ -45,14 +45,21 @@ let n = 0;
 function chat(handle: string, via: AgentClient = agent) {
   n += 1;
   const { space, sent } = fakeSpace(`chat-${n}`, "imessage");
+  const linked: { phone: string; name: string; businessName: string; location: string }[] = [];
   const send = async (content: Record<string, unknown>) => {
     const before = sent.length;
-    await respond(space, fakeMessage(space, { content, senderId: handle }), "stream", { agent: via });
+    await respond(space, fakeMessage(space, { content, senderId: handle }), "stream", {
+      agent: via,
+      linkOwner: async (profile) => {
+        linked.push(profile);
+      },
+    });
     return sent.slice(before);
   };
   return {
     space,
     sent,
+    linked,
     text: (text: string) => send({ type: "text", text }),
     photo: (caption?: string, name?: string) =>
       send(
@@ -78,18 +85,30 @@ const textMessage = (space: Space, text: string): Message => fakeMessage(space, 
 
 async function onboard(c: ReturnType<typeof chat>, name: string, role: string) {
   await c.text("hi");
-  await c.text(name);
-  return c.text(role);
+  if (role === "customer") return c.text("user");
+  await c.text(role === "1" ? "1" : "owner");
+  return c.text(`${name}, ${name}'s, Westfield`);
 }
 
-test("onboarding asks name, then owner or customer, then explains", async () => {
+test("onboarding asks owner or user, then name, business, and location", async () => {
   const c = chat(OWNER);
-  assert.deepEqual(await c.text("hello"), ["Hi! I'm JOLO ☕ I keep café menus up to date. What's your name?"]);
-  assert.deepEqual(await c.text("I'm barbara!"), ["Nice to meet you, Barbara! Are you a café owner or a customer?"]);
-  assert.deepEqual(await c.text("hmm"), ['Just reply "owner" if you run a café, or "customer" if you\'re looking for one.']);
-  const [welcome] = await c.text("I own the place");
-  assert.match(welcome!, /match you to your café by this phone number/);
-  assert.deepEqual(joloState(c.space.id), { name: "Barbara", role: "owner" });
+  assert.deepEqual(await c.text("hello"), ["Are you an owner or a user?"]);
+  assert.deepEqual(await c.text("hmm"), ['Reply "owner" if you run the café, or "user" if you don\'t.']);
+  assert.deepEqual(await c.text("I own the place"), ["What is your name, business name, and location?"]);
+  assert.deepEqual(await c.text("just barbara"), [
+    'Send all three, separated by commas. For example: "Isaiah, Barbara\'s, Westfield".',
+  ]);
+  const [welcome] = await c.text("Barbara, Barbara's, Westfield");
+  assert.match(welcome!, /Thanks, Barbara\. Barbara's in Westfield is linked to this phone number/);
+  assert.deepEqual(joloState(c.space.id), {
+    name: "Barbara",
+    businessName: "Barbara's",
+    location: "Westfield",
+    role: "owner",
+  });
+  assert.deepEqual(c.linked, [
+    { phone: OWNER, name: "Barbara", businessName: "Barbara's", location: "Westfield" },
+  ]);
   assert.equal(requests.filter((r) => r.conversation_id === c.space.id).length, 0, "onboarding never calls the agent");
 });
 
@@ -127,12 +146,31 @@ test("owner flow, partial menu: scope → summary → yes → updated (sequence 
   assert.equal(joloState(c.space.id).pending, undefined);
 });
 
-test("customer asks afterwards and gets the new prices (steps 22–27)", async () => {
+test("a user is pointed at the app; no café is linked and the agent is not called", async () => {
   const c = chat("+12015550000");
+  const [reply] = await onboard(c, "Sam", "customer");
+  assert.match(reply!, /^Welcome to JOLO ☕ Sign in to the JOLO app with this phone number/);
+  assert.deepEqual(joloState(c.space.id), { role: "customer" });
+  assert.equal(c.linked.length, 0);
+  assert.equal(requests.filter((r) => r.conversation_id === c.space.id).length, 0);
+});
+
+test("a user's later texts go to the agent as a customer", async () => {
+  const c = chat("+12015550001");
   await onboard(c, "Sam", "customer");
-  const [answer] = await c.text("What's on the menu at Barbara's?");
-  assert.match(answer!, /Cortado \$4\.75/);
-  assert.match(answer!, /\(updated today\)$/);
+  await c.text("what's on the menu at Barbara's?");
+  const last = requests.at(-1)!;
+  assert.equal(last.conversation_id, c.space.id);
+  assert.equal(last.sender.role, "customer");
+  assert.equal(last.sender.handle, "+12015550001");
+});
+
+test("a photo sent before choosing user isn't asked for again", async () => {
+  const c = chat("+12015550002");
+  await c.photo();
+  const replies = await c.text("user");
+  assert.equal(replies.length, 1);
+  assert.match(replies[0]!, /^Welcome to JOLO/);
 });
 
 test("full menu shows removals; no cancels", async () => {
@@ -157,9 +195,9 @@ test("a photo from a handle that owns no café gets not_owner", async () => {
 test("a photo sent before onboarding is asked for again afterwards", async () => {
   const c = chat(OWNER);
   await c.photo("update the menu");
-  await c.text("Barbara");
-  assert.deepEqual(await c.text("owner"), [
-    'Great! I\'ll match you to your café by this phone number. Whenever your menu changes, text me a photo of it and say "update the menu".',
+  await c.text("owner");
+  assert.deepEqual(await c.text("Barbara, Barbara's, Westfield"), [
+    "Thanks, Barbara. Barbara's in Westfield is linked to this phone number. Sign in to the app with it and you'll see this there.",
     "Send that photo again and I'll read it.",
   ]);
 });

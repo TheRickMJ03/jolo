@@ -16,8 +16,13 @@ export const usingEmulators = process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS ===
 
 if (usingEmulators) {
   const host = process.env.EXPO_PUBLIC_EMULATOR_HOST ?? "localhost";
+  // 8080 is the emulator's normal port. On this Mac, Screen Time's web filter
+  // transparently captures only that port, which breaks the native SDK's gRPC
+  // stream. EXPO_PUBLIC_FIRESTORE_EMULATOR_PORT can point at another published
+  // port for the same emulator.
+  const firestorePort = Number(process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_PORT ?? 8080);
   connectAuthEmulator(auth, `http://${host}:9099`);
-  connectFirestoreEmulator(db, host, 8080);
+  connectFirestoreEmulator(db, host, firestorePort);
   // The emulator can't verify the app with APNs or reCAPTCHA; skip that step.
   auth.settings.appVerificationDisabledForTesting = true;
 }

@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { parseActions } from "../src/jolo/agent-client.ts";
 import { imageType, sniffImage } from "../src/jolo/content.ts";
 import { confirmSummary, formatPrice, formatPrices } from "../src/jolo/copy.ts";
-import { parseConfirm, parseConfirmReply, parseName, parseRole, parseScope } from "../src/jolo/parse.ts";
+import { parseConfirm, parseConfirmReply, parseName, parseOwnerProfile, parseRole, parseScope } from "../src/jolo/parse.ts";
 
 test("scope answers", () => {
   for (const text of ["Just part of it", "partial", "only the drinks", "some of it", "half"]) {
@@ -32,8 +32,23 @@ test("yes/no answers", () => {
 
 test("roles", () => {
   for (const text of ["owner", "I own a café", "Café owner", "I run it", "1"]) assert.equal(parseRole(text), "owner", text);
-  for (const text of ["customer", "just looking", "guest", "2"]) assert.equal(parseRole(text), "customer", text);
+  for (const text of ["customer", "user", "just looking", "guest", "2"]) assert.equal(parseRole(text), "customer", text);
   for (const text of ["", "who's asking", "owner and customer"]) assert.equal(parseRole(text), null, text);
+});
+
+test("owner profile is name, business, then the rest as location", () => {
+  assert.deepEqual(parseOwnerProfile("Isaiah Guzman, Barbara's, 1 Main Street, Westfield NJ"), {
+    name: "Isaiah Guzman",
+    businessName: "Barbara's",
+    location: "1 Main Street, Westfield NJ",
+  });
+  assert.deepEqual(parseOwnerProfile("name: Ada, business: Eye Menu, location: Newark"), {
+    name: "Ada",
+    businessName: "Eye Menu",
+    location: "Newark",
+  });
+  assert.equal(parseOwnerProfile("just a name"), null);
+  assert.equal(parseOwnerProfile("123, Cafe, Town"), null);
 });
 
 test("names", () => {

@@ -8,7 +8,8 @@ import { getRecord, touch } from "../store.ts";
 import { AgentError, type AgentClient } from "./agent-client.ts";
 import { type CollectedContent, collectContent, MAX_PHOTOS } from "./content.ts";
 import { confirmSummary, copy } from "./copy.ts";
-import { parseConfirmReply, parseName, parseRole, parseScope } from "./parse.ts";
+import { linkOwnerCafe, toE164, type LinkedCafe } from "./link-cafe.ts";
+import { parseConfirmReply, parseOwnerProfile, parseRole, parseScope } from "./parse.ts";
 import type { AgentAction, JoloState, TurnEvent } from "./types.ts";
 
 export interface JoloContext {
@@ -17,6 +18,8 @@ export interface JoloContext {
   agent: AgentClient;
   /** Sends one message into the conversation (and archives it). */
   say(text: string): Promise<void>;
+  /** Writes the café the app shows for this phone. Tests pass their own. */
+  linkOwner?: (profile: LinkedCafe) => Promise<void>;
 }
 
 export function joloState(spaceId: string): JoloState {
@@ -32,7 +35,7 @@ export async function handleJolo(ctx: JoloContext): Promise<void> {
 
   try {
     if (!state.role) {
-      await onboard(state, content, say);
+      await onboard(state, content, say, ctx.message.sender?.id ?? "", ctx.linkOwner ?? linkOwnerCafe);
       return;
     }
 
@@ -87,35 +90,60 @@ async function onboard(
   state: JoloState,
   content: CollectedContent,
   say: (text: string) => Promise<void>,
+  handle: string,
+  linkOwner: (profile: LinkedCafe) => Promise<void>,
 ): Promise<void> {
   if (content.photos.length > 0 || content.tooLarge) state.heldPhoto = true;
 
   if (!state.onboarding) {
-    state.onboarding = "name";
-    await say(copy.greeting);
+    state.onboarding = "role";
+    await say(copy.askRole);
     return;
   }
 
-  if (state.onboarding === "name") {
-    const name = parseName(content.text);
-    if (!name) {
-      await say(copy.askNameAgain);
+  if (state.onboarding === "role") {
+    const role = parseRole(content.text);
+    if (role === "customer") {
+      // Customers use the app; nothing is written for them here. A photo they
+      // sent first isn't a menu update, so it isn't asked for again.
+      state.role = "customer";
+      delete state.onboarding;
+      delete state.heldPhoto;
+      await say(copy.welcomeUser);
       return;
     }
-    state.name = name;
-    state.onboarding = "role";
-    await say(copy.askRole(name));
+    if (role !== "owner") {
+      await say(copy.askRoleAgain);
+      return;
+    }
+    state.onboarding = "details";
+    await say(copy.askDetails);
     return;
   }
 
-  const role = parseRole(content.text);
-  if (!role) {
-    await say(copy.askRoleAgain);
+  const profile = parseOwnerProfile(content.text);
+  if (!profile) {
+    await say(copy.askDetailsAgain);
     return;
   }
-  state.role = role;
+  const phone = toE164(handle);
+  if (!phone) {
+    await say(copy.needPhone);
+    return;
+  }
+  try {
+    await linkOwner({ ...profile, phone });
+  } catch (error) {
+    console.error(`[jolo] café link failed: ${error instanceof Error ? error.message : error}`);
+    await say(copy.linkFailed);
+    return;
+  }
+  state.name = profile.name;
+  state.businessName = profile.businessName;
+  state.location = profile.location;
+  state.role = "owner";
   delete state.onboarding;
-  await say(copy.welcome(role));
+  await say(copy.welcomeOwner(profile.name, profile.businessName, profile.location));
   if (state.heldPhoto) {
     delete state.heldPhoto;
     await say(copy.resendPhoto);

@@ -16,12 +16,16 @@ The bridge runs this before anything reaches the agent. It's stored per conversa
 
 | Step | JOLO says | Reply accepted | Re-ask when unclear |
 |---|---|---|---|
-| Greeting + name | Hi! I'm JOLO ☕ I keep café menus up to date. What's your name? | Any short text. Prefixes like "I'm …", "my name is …" and "it's …" are stripped. 1–40 characters. | Sorry, what should I call you? Just your first name is fine. |
-| Role | Nice to meet you, {name}! Are you a café owner or a customer? | owner, I own…, café owner, 1 / customer, guest, just looking, 2 | Just reply "owner" if you run a café, or "customer" if you're looking for one. |
-| Owner welcome | Great! I'll match you to your café by this phone number. Whenever your menu changes, text me a photo of it and say "update the menu". | – | – |
-| Customer welcome | Great! Ask me about any café's menu, like "What's on the menu at Barbara's?" | – | – |
+| Role | Are you an owner or a user? | owner, I own…, café owner, 1; or user, customer, 2 | Reply "owner" if you run the café, or "user" if you don't. |
+| User welcome | Welcome to JOLO ☕ Sign in to the JOLO app with this phone number to find cafés near you and see what they're serving. | – | – |
+| Owner details | What is your name, business name, and location? | Three parts separated by commas or new lines. A street address may contain commas; the first part is the name, the second the business, the rest the location. | Send all three, separated by commas. For example: "Isaiah, Barbara's, Westfield". |
+| Owner welcome | Thanks, {name}. {business} in {location} is linked to this phone number. Sign in to the app with it and you'll see this there. | – | – |
 
-If the person's first message is a photo, it isn't lost: once onboarding finishes, JOLO asks them to send it again ("Send that photo again and I'll read it.").
+The three answers are written to the café whose `ownerPhone` is the sender's number, so the app shows the name, business, and location when that number signs in.
+
+A reply of "user" finishes onboarding with nothing written. That number has no café, so the app opens the customer side (Finder, Social, Favorites, Profile) when it signs in. Later texts go to the agent with `role: "customer"`.
+
+If an owner's first message is a photo, it isn't lost: once onboarding finishes, JOLO asks them to send it again ("Send that photo again and I'll read it.").
 
 ## 2. Owner updates the menu (sequence diagram, steps 1–21)
 
