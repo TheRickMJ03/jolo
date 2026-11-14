@@ -15,6 +15,8 @@ import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { Palette } from "@/constants/Colors";
 import { Radius, Spacing, Typography } from "@/constants/Typography";
 import { useAreaTrends } from "@/hooks/useAreaTrends";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import { nearestFirst } from "@/lib/area-trends";
 import { useForYou } from "@/hooks/useForYou";
 import { useAuth } from "@/lib/auth";
 import { formatPrice } from "@/lib/menu";
@@ -56,6 +58,8 @@ const SIGNAL_ICONS = { web: "trending-up", new: "sparkles-outline", asks: "chatb
 export default function SocialView() {
   const { user } = useAuth();
   const area = useAreaTrends();
+  const { coords } = useUserLocation();
+  const trending = useMemo(() => nearestFirst(area.trending, coords), [area.trending, coords]);
   // Personal picks come from this person's searches; "personal" shows them when they exist.
   const forYou = useForYou(user, "personal");
   const picks = forYou.source === "personal" ? forYou.cards : [];
@@ -122,7 +126,7 @@ export default function SocialView() {
         <Text style={styles.sectionTitle}>Trending near you</Text>
         {area.loading ? (
           <ActivityIndicator color={Palette.primary} accessibilityLabel="Finding trending drinks" />
-        ) : area.trending.length === 0 ? (
+        ) : trending.length === 0 ? (
           <Text style={styles.emptyLine}>
             Nothing is trending on local menus yet. Check back after cafés update their menus.
           </Text>
@@ -132,7 +136,7 @@ export default function SocialView() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.trendingRow}
           >
-            {area.trending.map((card) => (
+            {trending.map((card) => (
               <DrinkTrendCard
                 key={`${card.cafeId}:${card.itemId}`}
                 card={card}
@@ -334,6 +338,7 @@ function DrinkTrendCard({ card, icon, onPress }) {
         <Ionicons name="location-outline" size={11} color={Palette.onSurfaceVariant} />
         <Text style={styles.trendLocText} numberOfLines={1}>
           {card.cafeName}
+          {card.distanceLabel ? ` · ${card.distanceLabel}` : ""}
         </Text>
       </View>
       {typeof price === "number" ? (

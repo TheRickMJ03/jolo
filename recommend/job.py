@@ -9,11 +9,15 @@ and, per source, a headline and link as the example.
     python -m recommend.job --uid USER_ID --scrape
     python -m recommend.job --analytics --demo-trends   # no network: sample trends
     python -m recommend.job --analytics --scrape         # blogs + Reddit, live
+    python -m recommend.job --analytics --scrape --every 24 --service-account key.json
+                                                         # the real project, once a day
 """
 from __future__ import annotations
 
 import argparse
 import os
+import time
+import traceback
 from datetime import datetime, timedelta, timezone
 
 from recommend.analytics import AREA_ID, area_doc, is_drink_name, niche_entry, owner_signals
@@ -24,6 +28,9 @@ from recommend.scrape import scrape_niche
 
 NICHE_TTL = timedelta(days=7)
 EVENT_WINDOW = timedelta(days=90)
+
+# Menu versions read per café: enough to find drinks added in the last month.
+VERSIONS_READ = 12
 
 # The offline pass. Prices below come from the menu fixture, not from a scrape.
 FIXED_NICHES = (
@@ -156,7 +163,7 @@ class MemoryStore:
 class FirestoreStore:
     """Admin SDK against a real project, or an anonymous client against the emulator."""
 
-    def __init__(self, project_id: str | None = None):
+    def __init__(self, project_id: str | None = None, service_account: str | None = None):
         project = project_id or os.environ.get("FIRESTORE_PROJECT_ID", "jolo-ec76d")
         if os.environ.get("FIRESTORE_EMULATOR_HOST"):
             # The emulator needs no credentials, and with the host set the
@@ -168,15 +175,27 @@ class FirestoreStore:
             return
 
         import firebase_admin
-        from firebase_admin import firestore
+        from firebase_admin import credentials, firestore
 
+        # A service-account key file, or Application Default Credentials
+        # (GOOGLE_APPLICATION_CREDENTIALS, or the server's own identity on GCP).
+        credential = credentials.Certificate(service_account) if service_account else None
         if not firebase_admin._apps:
-            firebase_admin.initialize_app(options={"projectId": project})
+            firebase_admin.initialize_app(credential, options={"projectId": project})
         self.db = firestore.client()
+
+    def _since(self, query, since: datetime | None):
+        """Only events from `since` on, filtered by Firestore rather than after reading."""
+        if since is None:
+            return query
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        return query.where(filter=FieldFilter("createdAt", ">=", since))
 
     def list_events(self, uid: str, since: datetime | None = None) -> list[dict]:
         rows = []
-        for snapshot in self.db.collection("users").document(uid).collection("events").stream():
+        events = self.db.collection("users").document(uid).collection("events")
+        for snapshot in self._since(events, since).stream():
             data = snapshot.to_dict() or {}
             created = coerce_time(data.get("createdAt"))
             if since and created and created < since:
@@ -223,7 +242,9 @@ class FirestoreStore:
     def list_all_events(self, since: datetime | None = None) -> list[dict]:
         """Every customer's events, tagged with the uid from the document path."""
         rows = []
-        for snapshot in self.db.collection_group("events").stream():
+        # Needs the collection-group index on events.createdAt in
+        # jolo-app/firestore.indexes.json.
+        for snapshot in self._since(self.db.collection_group("events"), since).stream():
             parent = snapshot.reference.parent.parent
             if parent is None or snapshot.reference.parent.parent.parent.id != "users":
                 continue
@@ -247,9 +268,20 @@ class FirestoreStore:
                 "items": [],
                 "versions": [],
             }
+            location = data.get("location")
+            if location is not None and hasattr(location, "latitude"):
+                row["location"] = {"lat": location.latitude, "lng": location.longitude}
             current = data.get("currentMenuVersion") or 0
             if current > 0:
-                versions = [snap.to_dict() or {} for snap in cafe.reference.collection("menuVersions").stream()]
+                # The latest versions only: older history can't hold this month's additions.
+                from google.cloud import firestore as cloud_firestore
+
+                latest = (
+                    cafe.reference.collection("menuVersions")
+                    .order_by("version", direction=cloud_firestore.Query.DESCENDING)
+                    .limit(VERSIONS_READ)
+                )
+                versions = [snap.to_dict() or {} for snap in latest.stream()]
                 row["versions"] = versions
                 for version in versions:
                     if version.get("version") == current:
@@ -371,6 +403,25 @@ def run_analytics(store, *, scrape_blogs=None, scrape_social=None, now: datetime
     return {"niches": len(niche_docs), "cafes": len(cafes), "owners": len(owners), "people": len(by_uid)}
 
 
+def run_forever(run_once, every_hours: float, *, sleep=time.sleep, log=print, max_runs: int | None = None) -> int:
+    """Run `run_once` now and then every `every_hours`. A failed run is logged
+    and the next one still happens. Returns how many runs failed."""
+    failures = 0
+    runs = 0
+    while max_runs is None or runs < max_runs:
+        started = datetime.now(timezone.utc)
+        try:
+            log(f"[{started.isoformat(timespec='seconds')}] {run_once()}")
+        except Exception:  # keep the schedule alive; the next run may work
+            failures += 1
+            log(f"[{started.isoformat(timespec='seconds')}] run failed:\n{traceback.format_exc()}")
+        runs += 1
+        if max_runs is not None and runs >= max_runs:
+            break
+        sleep(every_hours * 3600)
+    return failures
+
+
 def _item(item_id, name, category, usd, **extra):
     prices = [] if usd is None else [{"size": None, "usd": usd}]
     return {
@@ -445,6 +496,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--demo-trends", action="store_true", help="With --analytics: store the sample trends as niches")
     parser.add_argument("--no-reddit", action="store_true", help="With --scrape: blogs only")
     parser.add_argument("--project", default=os.environ.get("FIRESTORE_PROJECT_ID", "jolo-ec76d"))
+    parser.add_argument(
+        "--service-account",
+        default=os.environ.get("JOLO_SERVICE_ACCOUNT"),
+        help="Admin key file for the real project. Ignored when FIRESTORE_EMULATOR_HOST is set.",
+    )
+    parser.add_argument("--every", type=float, metavar="HOURS", help="With --analytics: keep running, every HOURS")
     args = parser.parse_args(argv)
 
     if args.demo:
@@ -460,30 +517,37 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.analytics:
-        store = FirestoreStore(args.project)
-        now = datetime.now(timezone.utc)
-        if args.demo_trends:
-            for document in demo_niche_docs(now):
-                store.put_niche(document["slug"], document)
+        store = FirestoreStore(args.project, args.service_account)
         scrape_social = None
         if args.scrape and not args.no_reddit:
             from recommend.social import scrape_social
-        summary = run_analytics(
-            store,
-            scrape_blogs=scrape_niche if args.scrape else None,
-            scrape_social=scrape_social,
-            now=now,
-        )
-        print(
-            f"{summary['niches']} niches, {summary['cafes']} cafés, "
-            f"{summary['owners']} owners and {summary['people']} people updated."
-        )
+
+        def once() -> str:
+            now = datetime.now(timezone.utc)
+            if args.demo_trends:
+                for document in demo_niche_docs(now):
+                    store.put_niche(document["slug"], document)
+            summary = run_analytics(
+                store,
+                scrape_blogs=scrape_niche if args.scrape else None,
+                scrape_social=scrape_social,
+                now=now,
+            )
+            return (
+                f"{summary['niches']} niches, {summary['cafes']} cafés, "
+                f"{summary['owners']} owners and {summary['people']} people updated."
+            )
+
+        if args.every:
+            run_forever(once, args.every)
+            return 0
+        print(once())
         return 0
 
     if not args.uid:
         parser.error("--uid is required unless --demo or --analytics")
 
-    store = FirestoreStore(args.project)
+    store = FirestoreStore(args.project, args.service_account)
     result = run_job(store, args.uid, scrape=scrape_niche if args.scrape else None)
     print(f"{len(result['cards'])} cards for {args.uid}")
     for card in result["cards"]:

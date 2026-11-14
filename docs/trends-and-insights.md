@@ -48,7 +48,7 @@ The line under the title says when the job last ran and which sources worked: `U
 
 ## Customer: the Social tab
 
-- **Trending near you** (`areas/union-county-nj`): drinks on local menus with at least one signal. The signals are matching a web trend, being newly added at that café, or being asked about on JOLO. Each card shows the café, the menu price, and the signals.
+- **Trending near you** (`areas/union-county-nj`): drinks on local menus with at least one signal. The signals are matching a web trend, being newly added at that café, or being asked about on JOLO. Each card shows the café, the menu price, and the signals. With the person's location (inside the service area), cards are grouped nearest first, walkable (1.5 mi), then 5 mi, then 15 mi, keeping the job's ranking within each group, and show the distance ("& Grain · 1.0 mi").
 - **Picked for you** (`users/{uid}/recommendations/current`): from the person's own searches, the existing recommend matcher. Submitting a search in Finder records it.
 
 The Community feed is still placeholder content.
@@ -108,8 +108,45 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:18180 .venv/bin/python -m recommend.job --anal
 
 A niche scraped in the last 7 days is reused, so running the job again is cheap.
 
+## Run it on a schedule, against the real project
+
+The job keeps itself running with `--every HOURS`. A failed run is logged and the next one still happens. It reads only the last 90 days of events and the latest 12 menu versions per café, so a run stays small as history grows.
+
+Against the real project it needs a Firebase Admin key (Firebase console → Project settings → Service accounts), passed as `--service-account` or `JOLO_SERVICE_ACCOUNT`. Without one it uses Application Default Credentials, so on a Google Cloud server its own identity works. Never commit the key.
+
+The container (`recommend/Dockerfile`) runs blogs plus Reddit once every 24 hours:
+
+```bash
+docker build -f recommend/Dockerfile -t jolo-trends .
+```
+
+```bash
+docker run -d --restart unless-stopped --name jolo-trends -v ~/Scraper_test:/scrapers:ro -v /path/to/key.json:/secrets/key.json:ro -e JOLO_SERVICE_ACCOUNT=/secrets/key.json -e CAMOFOX_BASE_URL=http://host.docker.internal:9377 jolo-trends
+```
+
+Before the first run against the real project:
+
+1. **Deploy the indexes and rules** from `jolo-app` (`npx firebase deploy --only firestore`). The job's event query needs the collection-group index on `events.createdAt` in `firestore.indexes.json`. The project is shared with the original JOLO app, so the rules deploy replaces its rules too (they're included).
+2. **Run Reddit from a network Reddit allows**, with camofox-browser beside the job. Blogs need nothing.
+
+## Café sign-up over iMessage
+
+The bridge writes `cafes/owner-{digits}` when an owner gives their name, business and location (`spectrum-archive-app/src/jolo/link-cafe.ts`). It updates those fields and keeps everything else: signing up again never resets the menu pointer.
+
+| Where | How it writes | Set |
+|---|---|---|
+| Local demo | The emulator's REST API | `FIRESTORE_EMULATOR_HOST` |
+| Real project | Firebase Admin SDK | `JOLO_SERVICE_ACCOUNT` (key file) or Application Default Credentials; leave `FIRESTORE_EMULATOR_HOST` blank |
+
 ## Not done
 
-- **A schedule.** The job runs by hand; a daily run is the next step.
-- **iMessage questions as asks.** Questions customers text JOLO aren't logged as events yet; that needs Bhavesh's agent.
-- **Per-town areas.** There is one area, Union County. Customers' cards aren't sorted by their own location yet.
+These belong to other parts of the project:
+
+- **Menus from photos** (the agent and the reader). Until then, owners add menus in the app.
+- **Weekly customer-ask insights** (`insights/{week}`) are written by the agent's backend, so "Customer asks" stays empty for real cafés until it exists.
+- **iMessage questions as asks.** The agent would log them as events in the same shape.
+
+Still open on this side:
+
+- **One area.** Everything is "Union County". A café outside it, like cafe g in Princeton, sees county-wide asks.
+- **TikTok** needs a ScrapFly key.

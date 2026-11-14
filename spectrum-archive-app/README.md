@@ -94,7 +94,9 @@ Set `LLM_MODEL` (and `LLM_BASE_URL`/`LLM_API_KEY`) to switch from echo to the ag
 
 This is JOLO's iMessage voice. With `AGENT_URL` set, `respond()` hands every message, photos included, to [`src/jolo/conversation.ts`](src/jolo/conversation.ts):
 
-1. **Onboarding (first contact).** JOLO asks the person's name, then whether they're a café owner or a customer. The answers are kept per conversation, and `/reset` starts over.
+1. **Onboarding (first contact).** JOLO asks "Are you an owner or a user?". A user is pointed at the app. An owner sends their name, business and location in one message, and the bridge writes their café (`cafes/owner-{digits}`) so the app shows it when that number signs in. Signing up again updates those three fields and never resets the menu. The answers are kept per conversation, and `/reset` starts over.
+
+   Where the café is written: `FIRESTORE_EMULATOR_HOST` set → the local emulator. Blank → the real project through the Firebase Admin SDK, with `JOLO_SERVICE_ACCOUNT` (a key file) or Application Default Credentials. See [`src/jolo/link-cafe.ts`](src/jolo/link-cafe.ts).
 2. **Everything after that goes to Bhavesh's agent** via `POST {AGENT_URL}/v1/turn`. The bridge sends:
    - the text and photos (the original file as base64, never resized; `image/*` only, at most 5, each up to 10 MB)
    - "Reading your menu…" to the owner first, whenever there's a photo, because a read takes 15 to 100 seconds

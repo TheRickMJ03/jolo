@@ -117,10 +117,13 @@ export const apiKey = read("API_KEY");
 export const agentUrl = read("AGENT_URL")?.replace(/\/+$/, "");
 export const agentToken = read("AGENT_TOKEN");
 
-// Where owner sign-up writes the café the app reads. The project id has to be
-// the one in the app's GoogleService-Info.plist. The emulator keeps that
-// project separate from demo-jolo, and port 8080 is captured by Screen Time.
-export const firestoreEmulatorHost = read("FIRESTORE_EMULATOR_HOST") ?? "127.0.0.1:18180";
+// Where owner sign-up writes the café the app reads (src/jolo/link-cafe.ts).
+// FIRESTORE_EMULATOR_HOST set → the local emulator. Blank → the real project,
+// with JOLO_SERVICE_ACCOUNT (path to an Admin key file) or Application Default
+// Credentials. The project id has to be the one in the app's
+// GoogleService-Info.plist; the emulator keeps it separate from demo-jolo.
+export const firestoreEmulatorHost = read("FIRESTORE_EMULATOR_HOST");
 export const firestoreProjectId = read("FIRESTORE_PROJECT_ID") ?? "jolo-ec76d";
+export const firestoreServiceAccount = read("JOLO_SERVICE_ACCOUNT");
 // Generous by default: reading a menu photo on a GPU takes a while.
 export const agentTimeoutMs = positiveInt("AGENT_TIMEOUT_MS", 300_000);

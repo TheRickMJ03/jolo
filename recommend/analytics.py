@@ -391,6 +391,8 @@ def area_trending(cafes: list[dict], events: list[dict], web: list[dict], now: d
                     "cafeName": cafe.get("cafeName") or "Café",
                     "priceUsd": _first_price(item),
                     "prices": item.get("prices") or [],
+                    # The app sorts by distance from the person when it has both.
+                    "location": cafe.get("location"),
                     "signals": signals,
                     "why": " · ".join(signal["label"] for signal in signals),
                     "score": round(score, 4),

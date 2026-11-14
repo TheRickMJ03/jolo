@@ -1,0 +1,18 @@
+# The trends job (python -m recommend.job). Separate from the menu reader's
+# requirements.txt: no OCR or model packages here.
+firebase-admin==7.8.0
+pydantic==2.14.3
+PyYAML==6.0.2
+# blog-finder (café blogs): search, feeds, page parsing
+requests==2.34.2
+beautifulsoup4>=4.12
+feedparser>=6.0
+ddgs>=9.0
+python-dotenv>=1.0
+anthropic>=0.70
+# Scraper_test (Reddit through camofox, TikTok through ScrapFly)
+httpx>=0.27
+loguru>=0.7
+jmespath>=1.0
+nested-lookup>=0.2
+scrapfly-sdk>=0.8

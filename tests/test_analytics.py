@@ -17,7 +17,7 @@ from recommend.analytics import (
     source_status,
     web_trends,
 )
-from recommend.job import MemoryStore, demo_niche_docs, refresh_niche, run_analytics
+from recommend.job import MemoryStore, demo_niche_docs, refresh_niche, run_analytics, run_forever
 from recommend.social import SocialDeps, engagement_count, scrape_social, slim_post
 
 NOW = datetime(2026, 11, 14, 12, tzinfo=timezone.utc)
@@ -282,6 +282,14 @@ def test_area_trending_needs_a_signal_and_uses_the_menu_price():
     assert card["priceUsd"] == 6.25
     assert [signal["kind"] for signal in card["signals"]] == ["web", "new", "asks"]
     assert card["why"] == "Rising on Reddit · New at Ayala · 1 person asked about it"
+    assert card["location"] is None
+
+
+def test_area_cards_carry_the_cafe_location():
+    row = cafe("a", "Ayala", [version(1, 50, BASE), version(2, 3, BASE + [drink("m", "Iced Matcha")])])
+    row["location"] = {"lat": 40.69, "lng": -74.26}
+    [card] = area_trending([row], [], WEB, NOW)
+    assert card["location"] == {"lat": 40.69, "lng": -74.26}
 
 
 def test_area_trending_skips_unconfirmed_reads():
@@ -349,3 +357,20 @@ def test_run_analytics_writes_the_area_owners_and_people():
     trending = store.areas[AREA_ID]["trending"]
     assert trending and trending[0]["itemName"] == "Iced Matcha Latte"
     assert set(store.recommendations) == {"u1", "u2"}
+
+
+def test_run_forever_keeps_going_after_a_failed_run():
+    results = iter([RuntimeError("ddg down"), "ok"])
+    sleeps, logs = [], []
+
+    def once():
+        result = next(results)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    failures = run_forever(once, 24, sleep=sleeps.append, log=logs.append, max_runs=2)
+    assert failures == 1
+    assert sleeps == [24 * 3600]
+    assert "run failed" in logs[0] and "ddg down" in logs[0]
+    assert logs[1].endswith("ok")
