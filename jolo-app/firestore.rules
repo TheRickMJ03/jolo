@@ -1,0 +1,99 @@
+rules_version = '2';
+
+// Shared Firebase project (jolo-ec76d): deploying these replaces the rules for
+// the JOLO customer app too, so its `users` rules are kept here unchanged.
+// See docs/contracts.md §1 for the schema these rules guard.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The signed-in user's VERIFIED phone number (set by Firebase Phone Auth),
+    // or null for email accounts and visitors.
+    function verifiedPhone() {
+      return request.auth == null ? null : request.auth.token.get('phone_number', null);
+    }
+
+    function cafePath(cafeId) {
+      return /databases/$(database)/documents/cafes/$(cafeId);
+    }
+
+    // Owner = the verified phone matches the café's ownerPhone, which only the
+    // Admin SDK (link-owner script, the agent's backend) can set.
+    function isOwner(cafeId) {
+      return verifiedPhone() != null
+        && get(cafePath(cafeId)).data.get('ownerPhone', null) == verifiedPhone();
+    }
+
+    function currentVersion(cafeId) {
+      return get(cafePath(cafeId)).data.get('currentMenuVersion', 0);
+    }
+
+    // A menu version written by the app. Item-level checks happen in the app
+    // (lib/menu.js); rules can't loop over a list.
+    function validAppVersion(data, version) {
+      let keys = ['version', 'basedOn', 'scope', 'source', 'createdAt', 'createdBy', 'items', 'changes'];
+      return data.keys().hasAll(keys) && data.keys().hasOnly(keys)
+        && data.version == version
+        && data.basedOn == version - 1
+        && data.scope in ['full', 'partial']
+        && data.source == 'app'
+        && data.createdAt == request.time
+        && data.createdBy is map
+        && data.createdBy.keys().hasOnly(['uid', 'phone'])
+        && data.createdBy.uid == request.auth.uid
+        && data.createdBy.phone == verifiedPhone()
+        && data.items is list && data.items.size() <= 300
+        && data.changes is map;
+    }
+
+    match /cafes/{cafeId} {
+      // Seed data and menus are public: customers ask about them.
+      allow read: if true;
+      allow create, delete: if false;
+      // The owner may only move the menu pointer up by exactly one, to a
+      // version created in the same write. Everything else (name, hours,
+      // ownerPhone) is Admin SDK only.
+      allow update: if isOwner(cafeId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['currentMenuVersion', 'menuUpdatedAt'])
+        && request.resource.data.currentMenuVersion is int
+        && request.resource.data.currentMenuVersion == resource.data.get('currentMenuVersion', 0) + 1
+        && request.resource.data.menuUpdatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/cafes/$(cafeId)/menuVersions/$(string(request.resource.data.currentMenuVersion)));
+
+      // Menu history: immutable. A new version must be current + 1 and must
+      // become current in the same write.
+      match /menuVersions/{version} {
+        allow read: if true;
+        allow create: if isOwner(cafeId)
+          && version == string(currentVersion(cafeId) + 1)
+          && getAfter(cafePath(cafeId)).data.get('currentMenuVersion', 0) == currentVersion(cafeId) + 1
+          && validAppVersion(request.resource.data, currentVersion(cafeId) + 1);
+        allow update, delete: if false;
+      }
+
+      // Weekly insights: written by the agent's backend, read by the owner only.
+      match /insights/{week} {
+        allow read: if isOwner(cafeId);
+        allow write: if false;
+      }
+    }
+
+    // Profiles (from the JOLO app): any signed-in user can read them; only the
+    // owner can write.
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
+
+      // Email, phone, settings and push tokens stay private to the owner.
+      match /private/{document} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Everything else stays locked until its feature is built.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

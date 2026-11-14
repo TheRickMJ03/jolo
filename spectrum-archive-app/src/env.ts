@@ -108,3 +108,13 @@ export const archiveExpireDays = positiveInt("ARCHIVE_EXPIRE_DAYS", 14);
 
 // Query/send API. Blank API_KEY → the /api routes are off (webhook still works).
 export const apiKey = read("API_KEY");
+
+// ---------------------------------------------------------------------------
+// JOLO agent (Bhavesh's), spoken as POST {AGENT_URL}/v1/turn — see
+// docs/contracts.md. Blank AGENT_URL → onboarding and the menu flow are off and
+// replies fall back to LLM_MODEL or echo, as before.
+// ---------------------------------------------------------------------------
+export const agentUrl = read("AGENT_URL")?.replace(/\/+$/, "");
+export const agentToken = read("AGENT_TOKEN");
+// Generous by default: reading a menu photo on a GPU takes a while.
+export const agentTimeoutMs = positiveInt("AGENT_TIMEOUT_MS", 120_000);

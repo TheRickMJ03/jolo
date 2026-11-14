@@ -1,5 +1,7 @@
 import {
+  agentUrl,
   apiKey,
+  llmModel,
   archiveFlushIntervalMs,
   archiveFlushMaxRows,
   archiveMode,
@@ -153,7 +155,15 @@ if (!whatsappProvider) {
   console.log("No WA_TOKEN/WA_NUMBER_ID/WA_SECRET in .env, so WhatsApp is off.");
 }
 
-const flushEvery = `flush every ${Math.round(archiveFlushIntervalMs / 1000)}s or ${archiveFlushMaxRows} rows`;
+if (agentUrl) {
+  console.log(`JOLO agent: ${agentUrl}/v1/turn — onboarding and the menu flow are on.`);
+} else {
+  console.log(
+    `No AGENT_URL in .env, so onboarding and the JOLO menu flow are off; replies use ${llmModel ? "LLM_MODEL" : "echo"}.`,
+  );
+}
+
+const flushEvery =`flush every ${Math.round(archiveFlushIntervalMs / 1000)}s or ${archiveFlushMaxRows} rows`;
 if (archiveMode === "s3") {
   console.log(`Archive: Parquet to ${archiveRoot} (${flushEvery}).`);
 } else if (archiveMode === "local") {

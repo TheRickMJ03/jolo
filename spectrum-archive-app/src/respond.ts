@@ -4,6 +4,8 @@ import { run } from "./agent.ts";
 import { isDuplicate } from "./archive/dedupe.ts";
 import { archiveInbound, rememberSpace, sendAndArchive } from "./archive/send.ts";
 import { forget } from "./history.ts";
+import { joloAgent, type AgentClient } from "./jolo/agent-client.ts";
+import { handleJolo, joloState } from "./jolo/conversation.ts";
 import { llmEnabled, LlmError } from "./llm.ts";
 
 const SIGNAL_CONTENT: ReadonlySet<string> = new Set([
@@ -13,7 +15,14 @@ const SIGNAL_CONTENT: ReadonlySet<string> = new Set([
   "edit",
 ]);
 
+const COMMANDS: ReadonlySet<string> = new Set(["/ping", "/whoami", "/help", "/reset"]);
+
 export type InboundSource = "stream" | "webhook";
+
+export interface RespondOptions {
+  /** The JOLO agent. Defaults to the one AGENT_URL configures; undefined = JOLO flow off. */
+  agent?: AgentClient;
+}
 
 // Shared by both inbound paths. `app.webhook()` is stateless and does not feed
 // `app.messages`, so the stream loop and the webhook handler would otherwise
@@ -22,6 +31,7 @@ export async function respond(
   space: Space,
   message: Message,
   source: InboundSource = "stream",
+  options: RespondOptions = {},
 ): Promise<void> {
   // Providers echo back what we send; skip it so the app never talks to itself.
   // Not archived either: our own sends are archived where we send them.
@@ -42,57 +52,82 @@ export async function respond(
   rememberSpace(space);
   archiveInbound(space, message, source);
 
+  const agent = "agent" in options ? options.agent : joloAgent;
   const who = message.sender?.id ?? "unknown";
   const say = async (text: string) => {
     await sendAndArchive(space, text, "agent");
   };
 
+  const text = message.content.type === "text" ? message.content.text.trim() : "";
+  console.log(`[${message.platform}] ${who}: ${text || `<${message.content.type}>`}`);
+
+  // `responding` shows a typing indicator and clears it even if the body throws.
+  if (COMMANDS.has(text)) {
+    await space.responding(() => command(text, space, message, who, Boolean(agent), say));
+    return;
+  }
+
+  // JOLO flow (AGENT_URL set): onboarding, then Bhavesh's agent. Photos too.
+  if (agent) {
+    await space.responding(() => handleJolo({ space, message, agent, say }));
+    return;
+  }
+
   if (message.content.type !== "text") {
-    console.log(`[${message.platform}] ${who}: <${message.content.type}>`);
     await say(`Received a ${message.content.type} message.`);
     return;
   }
 
-  const text = message.content.text.trim();
-  console.log(`[${message.platform}] ${who}: ${text}`);
-
-  // `responding` shows a typing indicator and clears it even if the body throws.
   await space.responding(async () => {
-    switch (text) {
-      case "/ping":
-        await say("pong");
-        return;
-      case "/whoami":
-        await say(
-          [
-            `platform: ${message.platform}`,
-            `sender:   ${who}`,
-            `message:  ${message.id}`,
-          ].join("\n"),
-        );
-        return;
-      case "/help":
-        await say(
-          [
-            llmEnabled
+    await say(await answer(space, message, text));
+  });
+}
+
+async function command(
+  text: string,
+  space: Space,
+  message: Message,
+  who: string,
+  joloOn: boolean,
+  say: (text: string) => Promise<void>,
+): Promise<void> {
+  switch (text) {
+    case "/ping":
+      await say("pong");
+      return;
+    case "/whoami": {
+      const jolo = joloOn ? joloState(space.id) : undefined;
+      await say(
+        [
+          `platform: ${message.platform}`,
+          `sender:   ${who}`,
+          `message:  ${message.id}`,
+          ...(jolo ? [`name:     ${jolo.name ?? "(not asked yet)"}`, `role:     ${jolo.role ?? "(not asked yet)"}`] : []),
+        ].join("\n"),
+      );
+      return;
+    }
+    case "/help":
+      await say(
+        [
+          joloOn
+            ? "JOLO keeps café menus up to date. Owners text a photo of their menu; customers ask what's on it."
+            : llmEnabled
               ? "Spectrum archive app, backed by a model."
               : "Spectrum archive app. Anything you send comes back prefixed with echo:.",
-            "Every message is archived as Parquet.",
-            "/ping    — check the agent is alive",
-            "/whoami  — print sender and platform details",
-            "/reset   — forget this conversation (the archive is kept)",
-            "/help    — this message",
-          ].join("\n"),
-        );
-        return;
-      case "/reset":
-        forget(space.id);
-        await say("Forgotten — messages and saved notes.");
-        return;
-      default:
-        await say(await answer(space, message, text));
-    }
-  });
+          "Every message is archived as Parquet.",
+          "/ping    — check the agent is alive",
+          "/whoami  — print sender and platform details",
+          "/reset   — forget this conversation (the archive is kept)",
+          "/help    — this message",
+        ].join("\n"),
+      );
+      return;
+    case "/reset":
+      forget(space.id);
+      await say("Forgotten — messages and saved notes.");
+      return;
+  }
 }
 
 /** The webhook's handler: respond(), labelled as a webhook delivery. */

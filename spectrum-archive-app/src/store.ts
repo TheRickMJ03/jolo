@@ -2,12 +2,15 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { memoryEnabled, memoryFile } from "./env.ts";
+import type { JoloState } from "./jolo/types.ts";
 import type { ChatMessage } from "./llm.ts";
 
 export interface SpaceRecord {
   transcript: ChatMessage[];
   notes: string[];
   updatedAt: string;
+  /** Onboarding answers and the pending owner question (JOLO flow only). */
+  jolo?: JoloState;
 }
 
 interface MemoryFile {

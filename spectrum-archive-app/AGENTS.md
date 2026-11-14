@@ -10,6 +10,7 @@ Parquet archive (local or S3) and a small query/send API.
 - `src/env.ts` is the only module that reads `process.env`, and `src/index.ts` imports it **first**, before `spectrum-ts`.
 - `src/respond.ts` is the single reply path for both the stream and the webhook. Keep its guards in order: outbound echo → signal → dedupe → archive → reply.
 - Every outbound send goes through `sendAndArchive` in `src/archive/send.ts`. Don't call `space.send` directly, or that message won't be archived.
+- With `AGENT_URL` set, `respond()` hands messages to `src/jolo/conversation.ts` (onboarding, then the team agent). All wording lives in `src/jolo/copy.ts`; keep `../docs/conversation-design.md` in sync. The agent contract is `../docs/contracts.md`. Ownership is decided by the transport's sender handle, never by message text or the self-declared role.
 - The archive schema lives only in `src/archive/schema.ts`. The archive is append-only: never rewrite a Parquet file to update a row.
 - All DuckDB values from API callers or the model must be bind parameters.
 

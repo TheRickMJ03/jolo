@@ -12,6 +12,7 @@
     "models": "tsx src/models.ts",
     "memory": "tsx src/memory.ts show",
     "memory:clear": "tsx src/memory.ts clear",
+    "agent:stub": "tsx scripts/agent-stub.ts",
     "archive:setup": "tsx scripts/archive-setup.ts",
     "archive:query": "tsx scripts/archive-query.ts",
     "archive:compact": "tsx scripts/archive-compact.ts",

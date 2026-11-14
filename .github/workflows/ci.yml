@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bridge:
+    name: iMessage bridge (spectrum-archive-app)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: spectrum-archive-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: spectrum-archive-app/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      # No credentials, no network: everything runs against local Parquet and a stub agent.
+      - run: npm test
+
+  app:
+    name: Owner app (jolo-app)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jolo-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: jolo-app/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - name: App config resolves for every variant
+        run: |
+          APP_VARIANT=development npx expo config --type public > /dev/null
+          APP_VARIANT=production npx expo config --type public > /dev/null
+      - name: Expo dependency check
+        run: npx expo-doctor
+
+  firestore-rules:
+    name: Firestore rules (jolo-app)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jolo-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: jolo-app/package-lock.json
+      # The Firestore emulator needs Java 21+.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('jolo-app/package-lock.json') }}
+      - run: npm ci
+      - run: npm run test:rules

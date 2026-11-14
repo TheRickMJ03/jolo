@@ -1,6 +1,6 @@
 # spectrum-archive-app
 
-A temporary [Spectrum](https://photon.codes/docs/spectrum-ts) app. It receives messages from the terminal, iMessage, Telegram and WhatsApp Business, replies through one `respond()` function (an echo, or an LLM agent), archives every content message as Parquet (in S3 or a local folder), and serves a small authenticated API for querying the archive and sending messages.
+A temporary [Spectrum](https://photon.codes/docs/spectrum-ts) app. It receives messages from the terminal, iMessage, Telegram and WhatsApp Business, replies through one `respond()` function (JOLO's onboarding and menu flow via the team agent, an LLM agent, or an echo), archives every content message as Parquet (in S3 or a local folder), and serves a small authenticated API for querying the archive and sending messages.
 
 It is built to be cheap to run and easy to tear down completely.
 
@@ -89,6 +89,38 @@ Set `LLM_MODEL` (and `LLM_BASE_URL`/`LLM_API_KEY`) to switch from echo to the ag
 | `search_archive` | Searches the **current** conversation's archive only, with no way to pick another space. Its output is marked as untrusted data. |
 
 `npm run models` lists the models your key can reach. `npm run memory` and `npm run memory:clear` show or wipe transcripts and notes. Stop the app before `memory:clear`, or it writes its in-memory state back.
+
+### The JOLO conversation (`AGENT_URL`)
+
+This is JOLO's iMessage voice. With `AGENT_URL` set, `respond()` hands every message, photos included, to [`src/jolo/conversation.ts`](src/jolo/conversation.ts):
+
+1. **Onboarding (first contact).** JOLO asks the person's name, then whether they're a café owner or a customer. The answers are kept per conversation, and `/reset` starts over.
+2. **Everything after that goes to Bhavesh's agent** via `POST {AGENT_URL}/v1/turn`. The bridge sends:
+   - the text and photos (base64, `image/*` only, at most 5, each up to 10 MB)
+   - the sender's handle, taken from iMessage itself, never from the message text
+3. **The agent answers with actions**, and the bridge picks the wording:
+   - `ask_scope` → "Is this your full menu, or just part of it?"
+   - `confirm_changes` → "Found 2 new items and 3 price changes. Cortado now $4.75?"
+   - `menu_updated` → "Your menu is updated ✅"
+   - …and so on.
+
+   While a question is pending, the owner's reply is parsed as the answer ("Just part of it" → `partial`, "Yes, all correct" → yes). An unclear reply gets asked again without calling the agent.
+
+The wording is in [`src/jolo/copy.ts`](src/jolo/copy.ts) and [`../docs/conversation-design.md`](../docs/conversation-design.md). The contract is in [`../docs/contracts.md`](../docs/contracts.md). Commands and archiving work the same as before, and every JOLO message is archived.
+
+**Try it before the real agent exists.** The stub plays one café, "Barbara's", owned by `terminal-user`. Start it in one terminal:
+
+```bash
+npm run agent:stub
+```
+
+Then point the bridge at it in another:
+
+```bash
+AGENT_URL=http://127.0.0.1:8788 npm start
+```
+
+In the terminal TUI, drag a photo in to play the owner. Ask "What's on the menu at Barbara's?" to play a customer. To own the café from your real iMessage number, start the stub with `STUB_OWNER_HANDLES=+19085551234`.
 
 ### The webhook
 
@@ -266,6 +298,8 @@ npm test
 The tests need no credentials, network or AWS. Each test file gets its own temp archive and never reads `.env`. They cover:
 
 - the `respond()` guards and dedupe
+- the JOLO conversation end to end against the stub agent over HTTP: onboarding, the owner's scope and yes/no flow, a customer question, `not_owner`, the agent being down, photo limits
+- the reply parsers (scope, yes/no, role, name) and the change summary
 - the writer's schema, path, spool replay and failure handling
 - reader merging, filters and ordering
 - history trimming
