@@ -3,10 +3,12 @@
 // sequence diagram, steps 1–27) runs before the real agent exists.
 //
 // It does not read photos: any photo "contains" the same fixed changes
-// (2 new items, 3 price changes, Croissant missing). Nothing here is persisted.
+// (2 new items, 3 price changes, Croissant missing). Two photo names stand in
+// for the reader's failures: a name containing "blurry" is unreadable, and one
+// containing "offline" means the model server is down. Nothing is persisted.
 import { createServer, type IncomingMessage, type Server } from "node:http";
 
-import type { AgentAction, MenuChanges, MenuItem, Scope, TurnRequest } from "./types.ts";
+import type { AgentAction, MenuChanges, MenuItem, PriceChange, Scope, TurnRequest } from "./types.ts";
 
 export interface StubOptions {
   /** Sender handles that own the fake café. */
@@ -17,62 +19,115 @@ export interface StubOptions {
 
 interface Session {
   phase: "idle" | "await_scope" | "await_confirm";
-  proposal?: { changes: MenuChanges; next: MenuItem[] };
+  scope?: Scope;
+  /** Owner fixes to the proposal, by item id: the price they gave. */
+  fixes: Map<string, number>;
+  next?: MenuItem[];
 }
 
 const CAFE_NAME = "Barbara's";
 
+const item = (id: string, name: string, section: string, category: string, usd: number, confidence = 1): MenuItem => ({
+  id,
+  section,
+  item: name,
+  category,
+  prices: [{ size: null, usd }],
+  confidence,
+  available: true,
+});
+
 const VERSION_3: MenuItem[] = [
-  { id: "espresso", name: "Espresso", category: "Coffee", priceCents: 300, available: true },
-  { id: "cortado", name: "Cortado", category: "Coffee", priceCents: 450, available: true },
-  { id: "latte", name: "Latte", category: "Coffee", priceCents: 350, available: true },
-  { id: "cappuccino", name: "Cappuccino", category: "Coffee", priceCents: 400, available: true },
-  { id: "muffin", name: "Muffin", category: "Bakery", priceCents: 325, available: true },
-  { id: "croissant", name: "Croissant", category: "Bakery", priceCents: 375, available: true },
+  item("espresso", "Espresso", "Coffee", "drink", 3),
+  item("cortado", "Cortado", "Coffee", "drink", 4.5),
+  {
+    ...item("latte", "Latte", "Coffee", "drink", 0),
+    prices: [
+      { size: "12 oz", usd: 3.5 },
+      { size: "16 oz", usd: 4.25 },
+    ],
+  },
+  item("cappuccino", "Cappuccino", "Coffee", "drink", 4),
+  item("muffin", "Muffin", "Bakery", "food", 3.25),
+  item("croissant", "Croissant", "Bakery", "food", 3.75),
 ];
 
-/** What the stub pretends every photo shows. */
+/** What the stub pretends every photo shows. Matcha is the one the "reader" is least sure of. */
 const PHOTO_ADDS: MenuItem[] = [
-  { id: "oat-latte", name: "Oat Latte", category: "Coffee", priceCents: 500, available: true },
-  { id: "matcha", name: "Matcha", category: "Tea", priceCents: 525, available: true },
+  item("oat-latte", "Oat Latte", "Coffee", "drink", 5, 0.9),
+  item("matcha", "Matcha", "Tea", "drink", 5.25, 0.55),
 ];
-const PHOTO_PRICES: Record<string, number> = { cortado: 475, cappuccino: 425, muffin: 350 };
+const PHOTO_PRICES: Record<string, number> = { cortado: 4.75, cappuccino: 4.25, muffin: 3.5 };
 const PHOTO_MISSING = ["croissant"];
 
-const money = (cents: number | null | undefined) =>
-  typeof cents === "number" ? `$${(cents / 100).toFixed(2)}` : "ask in store";
+const money = (usd: number) => `$${usd.toFixed(2)}`;
+const priceText = (entry: MenuItem) =>
+  entry.prices?.length
+    ? entry.prices.map((price) => (price.size ? `${price.size} ${money(price.usd)}` : money(price.usd))).join(" / ")
+    : "ask in store";
+
+/** The comparison the reader's `changes` makes, between two whole menus. */
+function diff(before: MenuItem[], after: MenuItem[]): MenuChanges {
+  const old = new Map(before.map((entry) => [entry.id, entry]));
+  const kept = new Set(after.map((entry) => entry.id));
+  const price_changes: PriceChange[] = [];
+  for (const entry of after) {
+    const previous = old.get(entry.id);
+    if (!previous) continue;
+    for (const price of entry.prices ?? []) {
+      const was = previous.prices?.find((p) => (p.size ?? null) === (price.size ?? null));
+      if (was?.usd !== price.usd) {
+        price_changes.push({ item: entry.item, size: price.size ?? null, old_usd: was?.usd ?? null, new_usd: price.usd });
+      }
+    }
+  }
+  return {
+    added: after.filter((entry) => !old.has(entry.id)),
+    price_changes,
+    removed: before.filter((entry) => !kept.has(entry.id)).map((entry) => entry.item),
+  };
+}
 
 export function createStubAgent(options: StubOptions): Server {
-  let menu = VERSION_3.map((item) => ({ ...item }));
+  let menu = VERSION_3.map((entry) => ({ ...entry }));
   let version = 3;
   let updatedAt = new Date(Date.now() - 3 * 86_400_000);
   const sessions = new Map<string, Session>();
 
-  function propose(scope: Scope): { changes: MenuChanges; next: MenuItem[] } {
-    const changed = menu
-      .filter((item) => item.id && PHOTO_PRICES[item.id] !== undefined && PHOTO_PRICES[item.id] !== item.priceCents)
-      .map((item) => ({ name: item.name, field: "priceCents", from: item.priceCents, to: PHOTO_PRICES[item.id!] }));
-    const added = PHOTO_ADDS.filter((add) => !menu.some((item) => item.id === add.id));
-    const removed = scope === "full" ? menu.filter((item) => PHOTO_MISSING.includes(item.id ?? "")) : [];
+  function propose(session: Session): AgentAction {
+    const priced = (entry: MenuItem): MenuItem => {
+      const usd = session.fixes.get(entry.id ?? "") ?? PHOTO_PRICES[entry.id ?? ""];
+      // The stub only reprices single-price items; Latte keeps its two sizes.
+      return usd === undefined || entry.prices?.length !== 1 ? entry : { ...entry, prices: [{ size: null, usd }] };
+    };
+    const dropped = session.scope === "full" ? PHOTO_MISSING : [];
+    session.next = [
+      ...menu.filter((entry) => !dropped.includes(entry.id ?? "")),
+      ...PHOTO_ADDS.filter((add) => !menu.some((entry) => entry.id === add.id)),
+    ].map(priced);
+    session.phase = "await_confirm";
+    return { type: "confirm_changes", cafe_name: CAFE_NAME, changes: diff(menu, session.next) };
+  }
 
-    const next = [
-      ...menu
-        .filter((item) => !removed.includes(item))
-        .map((item) => ({ ...item, priceCents: PHOTO_PRICES[item.id ?? ""] ?? item.priceCents })),
-      ...added,
-    ];
-    return { changes: { added, changed, removed }, next };
+  /** "the cortado is 4.50" → the proposal's Cortado costs $4.50. A real agent would use the LLM. */
+  function applyFix(session: Session, text: string): boolean {
+    const amount = text.match(/(\d+(?:\.\d{1,2})?)/);
+    const lower = text.toLowerCase();
+    const target = (session.next ?? []).find((entry) => lower.includes(entry.item.toLowerCase()));
+    if (!amount || !target?.id) return false;
+    session.fixes.set(target.id, Number(amount[1]));
+    return true;
   }
 
   function menuText(): string {
     const days = Math.floor((Date.now() - updatedAt.getTime()) / 86_400_000);
     const when = days === 0 ? "updated today" : `updated ${days} day${days === 1 ? "" : "s"} ago`;
-    const items = menu.map((item) => `${item.name} ${money(item.priceCents)}`).join(", ");
+    const items = menu.map((entry) => `${entry.item} ${priceText(entry)}`).join(", ");
     return `${CAFE_NAME}: ${items} (${when})`;
   }
 
   function turn(request: TurnRequest): AgentAction[] {
-    const session = sessions.get(request.conversation_id) ?? { phase: "idle" };
+    const session: Session = sessions.get(request.conversation_id) ?? { phase: "idle", fixes: new Map() };
     sessions.set(request.conversation_id, session);
     const isOwner = options.ownerHandles.includes(request.sender.handle);
     const { event } = request;
@@ -80,6 +135,12 @@ export function createStubAgent(options: StubOptions): Server {
     if (event.type === "message") {
       if (event.photos.length > 0) {
         if (!isOwner) return [{ type: "not_owner" }];
+        const names = event.photos.map((photo) => photo.name.toLowerCase());
+        if (names.some((name) => name.includes("offline"))) return [{ type: "reader_down" }];
+        if (names.some((name) => name.includes("blurry"))) return [{ type: "unreadable_photo", reason: "blurry" }];
+        // Another photo of a menu that's already being confirmed is merged in
+        // and the summary sent again; otherwise the scope question comes first.
+        if (session.phase === "await_confirm") return [propose(session)];
         session.phase = "await_scope";
         return [{ type: "ask_scope" }];
       }
@@ -94,16 +155,20 @@ export function createStubAgent(options: StubOptions): Server {
     if (!isOwner) return [{ type: "not_owner" }];
 
     if (event.type === "scope" && session.phase === "await_scope") {
-      session.proposal = propose(event.scope);
-      session.phase = "await_confirm";
-      return [{ type: "confirm_changes", cafe_name: CAFE_NAME, changes: session.proposal.changes }];
+      session.scope = event.scope;
+      return [propose(session)];
     }
 
-    if (event.type === "confirm" && session.phase === "await_confirm" && session.proposal) {
-      const proposal = session.proposal;
+    if (event.type === "correction" && session.phase === "await_confirm") {
+      if (applyFix(session, event.text)) return [propose(session)];
+      return [{ type: "say", text: 'I couldn\'t work out that fix. Try it like "the cortado is 4.50".' }, propose(session)];
+    }
+
+    if (event.type === "confirm" && session.phase === "await_confirm" && session.next) {
+      const next = session.next;
       sessions.delete(request.conversation_id);
       if (!event.confirmed) return [{ type: "cancelled" }];
-      menu = proposal.next;
+      menu = next;
       version += 1;
       updatedAt = new Date();
       return [{ type: "menu_updated", cafe_name: CAFE_NAME, version }];

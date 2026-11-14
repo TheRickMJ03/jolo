@@ -16,40 +16,49 @@ import { respond } from "../src/respond.ts";
 import { fakeMessage, fakeSpace } from "./fakes.ts";
 
 const OWNER = "+19085551234";
-let server: Server;
+const READING = "Reading your menu… this can take a minute.";
+const READING_MORE = "Got it, reading that one too…";
 let agent: AgentClient;
 const requests: TurnRequest[] = [];
 
+const servers: Server[] = [];
+
+/** A stub agent with an untouched café (menu version 3), recording what the bridge sends it. */
+async function startStub(): Promise<AgentClient> {
+  const stub = createStubAgent({ ownerHandles: [OWNER] });
+  servers.push(stub);
+  await new Promise<void>((resolve) => stub.listen(0, "127.0.0.1", resolve));
+  const real = httpAgent(`http://127.0.0.1:${(stub.address() as AddressInfo).port}`, undefined, 5_000);
+  return { turn: (request) => (requests.push(request), real.turn(request)) };
+}
+
 before(async () => {
-  server = createStubAgent({ ownerHandles: [OWNER] });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const real = httpAgent(`http://127.0.0.1:${(server.address() as AddressInfo).port}`, undefined, 5_000);
-  // Record what the bridge sends, then pass it through to the real HTTP stub.
-  agent = { turn: (request) => (requests.push(request), real.turn(request)) };
+  // Shared by the tests that follow one café through an update, in order.
+  agent = await startStub();
 });
 
 after(() => {
-  server.close();
+  for (const stub of servers) stub.close();
 });
 
 let n = 0;
-function chat(handle: string) {
+function chat(handle: string, via: AgentClient = agent) {
   n += 1;
   const { space, sent } = fakeSpace(`chat-${n}`, "imessage");
   const send = async (content: Record<string, unknown>) => {
     const before = sent.length;
-    await respond(space, fakeMessage(space, { content, senderId: handle }), "stream", { agent });
+    await respond(space, fakeMessage(space, { content, senderId: handle }), "stream", { agent: via });
     return sent.slice(before);
   };
   return {
     space,
     sent,
     text: (text: string) => send({ type: "text", text }),
-    photo: (caption?: string) =>
+    photo: (caption?: string, name?: string) =>
       send(
         caption
           ? { type: "group", items: [photoMessage(space), textMessage(space, caption)] }
-          : photoContent(),
+          : photoContent(name),
       ),
   };
 }
@@ -88,7 +97,11 @@ test("owner flow, partial menu: scope → summary → yes → updated (sequence 
   const c = chat(OWNER);
   await onboard(c, "Barbara", "owner");
 
-  assert.deepEqual(await c.photo("update the menu"), ["Is this your full menu, or just part of it?"]);
+  assert.deepEqual(
+    await c.photo("update the menu"),
+    [READING, "Is this your full menu, or just part of it?"],
+    "the wait message goes out before the agent is called",
+  );
   const first = requests.at(-1)!;
   assert.equal(first.event.type, "message");
   assert.equal(first.sender.handle, OWNER, "handle comes from the transport");
@@ -103,9 +116,10 @@ test("owner flow, partial menu: scope → summary → yes → updated (sequence 
   assert.match(summary!, /\+ Oat Latte \$5\.00/);
   assert.match(summary!, /• Cortado \$4\.50 → \$4\.75/);
   assert.doesNotMatch(summary!, /removed/, "a partial photo removes nothing");
-  assert.match(summary!, /Reply "yes" to save, or "no" to cancel\.$/);
+  assert.match(summary!, /Reply "yes" to save or "no" to cancel\. If something is off, tell me what to fix\.$/);
 
-  assert.deepEqual(await c.text("maybe?"), ['Reply "yes" to save these changes, or "no" to leave your menu as it is.']);
+  const [again] = await c.text("maybe?");
+  assert.match(again!, /^Reply "yes" to save these changes, or "no" to leave your menu as it is\./);
   assert.equal(requests.at(-1)!.event.type, "scope", "an unclear answer doesn't reach the agent");
 
   assert.deepEqual(await c.text("Yes, all correct"), ["Your menu is updated ✅"]);
@@ -135,6 +149,7 @@ test("a photo from a handle that owns no café gets not_owner", async () => {
   const c = chat("+15550000000");
   await onboard(c, "Mallory", "owner"); // claiming to be an owner changes nothing
   assert.deepEqual(await c.photo(), [
+    READING,
     "I couldn't find a café linked to this phone number. Ask the JOLO team to link it, then send the photo again.",
   ]);
 });
@@ -169,6 +184,61 @@ test("agent down: friendly error, and the pending question survives", async () =
   assert.notEqual(reply, "I couldn't reach the menu service just now. Please try again in a minute.");
 });
 
+test("a correction to the summary goes to the agent and comes back as a new summary", async () => {
+  const c = chat(OWNER, await startStub());
+  await onboard(c, "Barbara", "owner");
+  await c.photo();
+  await c.text("part");
+
+  const [fixed] = await c.text("no, the cortado is 4.60");
+  assert.deepEqual(requests.at(-1)!.event, { type: "correction", text: "no, the cortado is 4.60" });
+  assert.match(fixed!, /• Cortado \$4\.50 → \$4\.60/);
+  assert.equal(joloState(c.space.id).pending, "confirm", "the owner still has to say yes");
+
+  assert.deepEqual(await c.text("yes"), ["Your menu is updated ✅"]);
+  assert.equal(joloState(c.space.id).updating, undefined);
+});
+
+test("more photos of the same menu join the open update", async () => {
+  const c = chat(OWNER, await startStub());
+  await onboard(c, "Barbara", "owner");
+  await c.photo();
+  assert.deepEqual(await c.photo(), [READING_MORE, "Is this your full menu, or just part of it?"]);
+  await c.text("full");
+
+  const [more, summary] = await c.photo();
+  assert.equal(more, READING_MORE);
+  assert.match(summary!, /^Found 2 new items/, "the agent merges the photo in and sends the summary again");
+  assert.equal(joloState(c.space.id).pending, "confirm");
+  assert.deepEqual(await c.text("no"), ["Okay, nothing changed. Send another photo whenever you're ready."]);
+
+  assert.equal((await c.photo())[0], READING, "after the update closes, the next photo starts a new one");
+});
+
+test("the two reader failures have their own messages and keep the open question", async () => {
+  const c = chat(OWNER, await startStub());
+  await onboard(c, "Barbara", "owner");
+  assert.deepEqual(await c.photo(undefined, "blurry.jpg"), [
+    READING,
+    "I couldn't read that photo. Can you send a clearer one?",
+  ]);
+  assert.equal(joloState(c.space.id).updating, undefined);
+  assert.deepEqual(await c.photo(undefined, "offline.jpg"), [
+    READING,
+    "I can't read menus right now. Try again in a minute.",
+  ]);
+
+  await c.photo();
+  assert.equal(joloState(c.space.id).pending, "scope");
+  assert.deepEqual(await c.photo(undefined, "blurry.jpg"), [
+    READING_MORE,
+    "I couldn't read that photo. Can you send a clearer one?",
+  ]);
+  assert.equal(joloState(c.space.id).pending, "scope", "a bad extra photo doesn't lose the question");
+  const [summary] = await c.text("part");
+  assert.match(summary!, /^Found 2 new items/);
+});
+
 test("too many photos and unsupported content", async () => {
   const c = chat(OWNER);
   await onboard(c, "Barbara", "owner");
@@ -182,6 +252,7 @@ test("too many photos and unsupported content", async () => {
   })();
   assert.deepEqual(replies, [
     "I can read up to 5 photos at a time. I'll use the first 5.",
+    READING,
     "Is this your full menu, or just part of it?",
   ]);
   const last = requests.at(-1)!;

@@ -2,7 +2,7 @@
 // docs/conversation-design.md — change both together.
 //
 // Plain text only: iMessage shows asterisks literally, so emphasis uses quotes.
-import type { FieldChange, MenuChanges, MenuItem, Role } from "./types.ts";
+import type { MenuChanges, MenuItem, Price, PriceChange, Role } from "./types.ts";
 
 export const copy = {
   // Onboarding
@@ -17,10 +17,13 @@ export const copy = {
   resendPhoto: "Send that photo again and I'll read it.",
 
   // Owner menu update
+  reading: "Reading your menu… this can take a minute.",
+  readingMore: "Got it, reading that one too…",
   askScope: "Is this your full menu, or just part of it?",
   askScopeAgain: 'Sorry, I didn\'t catch that. Is the photo your "full" menu, or just "part" of it?',
-  confirmPrompt: 'Reply "yes" to save, or "no" to cancel.',
-  confirmAgain: 'Reply "yes" to save these changes, or "no" to leave your menu as it is.',
+  confirmPrompt: 'Reply "yes" to save or "no" to cancel. If something is off, tell me what to fix.',
+  confirmAgain:
+    'Reply "yes" to save these changes, or "no" to leave your menu as it is. Or tell me what to fix, like "the cortado is 4.50".',
   noChanges: "That looks the same as your current menu, so there's nothing to save.",
   menuUpdated: "Your menu is updated ✅",
   cancelled: "Okay, nothing changed. Send another photo whenever you're ready.",
@@ -28,15 +31,17 @@ export const copy = {
     "I couldn't find a café linked to this phone number. Ask the JOLO team to link it, then send the photo again.",
 
   // Problems
+  unreadablePhoto: "I couldn't read that photo. Can you send a clearer one?",
+  readerDown: "I can't read menus right now. Try again in a minute.",
   agentDown: "I couldn't reach the menu service just now. Please try again in a minute.",
   tooManyPhotos: (max: number) => `I can read up to ${max} photos at a time. I'll use the first ${max}.`,
   unsupported: "I can only read photos and text for now.",
   photoTooLarge: "That photo is too large for me to read. Could you send a smaller one?",
 };
 
-export function formatPrice(cents: unknown): string {
-  if (typeof cents !== "number" || !Number.isFinite(cents)) return "no price";
-  return `$${(cents / 100).toFixed(2)}`;
+export function formatPrice(usd: unknown): string {
+  if (typeof usd !== "number" || !Number.isFinite(usd)) return "no price";
+  return `$${usd.toFixed(2)}`;
 }
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
@@ -46,48 +51,51 @@ function joinParts(parts: string[]): string {
   return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
 }
 
-const isPrice = (change: FieldChange) => change.field === "priceCents";
-
-function describeValue(field: string, value: unknown): string {
-  if (field === "priceCents") return formatPrice(value);
-  if (typeof value === "string") return `"${value}"`;
-  if (typeof value === "boolean") return field === "available" ? (value ? "available" : "sold out") : String(value);
-  return value === null || value === undefined ? "none" : String(value);
+/** "$4.50", "12 oz $4.50 / 16 oz $5.25", or "no price". */
+export function formatPrices(prices: Price[] | undefined): string {
+  if (!prices || prices.length === 0) return "no price";
+  return prices.map((price) => (price.size ? `${price.size} ${formatPrice(price.usd)}` : formatPrice(price.usd))).join(" / ");
 }
 
-function itemLine(item: MenuItem): string {
-  return `${item.name} ${formatPrice(item.priceCents)}`;
+const itemLine = (item: MenuItem) => `${item.item} ${formatPrices(item.prices)}`;
+const sized = (change: PriceChange) => (change.size ? `${change.item} (${change.size})` : change.item);
+
+function priceChangeLine(change: PriceChange): string {
+  const has = (usd: unknown) => typeof usd === "number";
+  if (!has(change.old_usd)) return `• ${sized(change)} new at ${formatPrice(change.new_usd)}`;
+  if (!has(change.new_usd)) return `• ${sized(change)} ${formatPrice(change.old_usd)} → no longer listed`;
+  return `• ${sized(change)} ${formatPrice(change.old_usd)} → ${formatPrice(change.new_usd)}`;
 }
+
+/** Least confident first: those are the ones the owner should look at. Unscored items go last. */
+const byConfidence = (a: MenuItem, b: MenuItem) => (a.confidence ?? 1) - (b.confidence ?? 1);
 
 const MAX_DETAIL_LINES = 6;
 
 /**
  * "Found 2 new items and 3 price changes. Cortado now $4.75?" plus up to six
- * detail lines and the yes/no prompt. Null when nothing changed.
+ * detail lines and the prompt. New items are listed least confident first.
+ * Null when nothing changed.
  */
 export function confirmSummary(changes: MenuChanges): string | null {
-  const prices = changes.changed.filter(isPrice);
-  const others = changes.changed.filter((change) => !isPrice(change));
+  const added = [...changes.added].sort(byConfidence);
+  const prices = changes.price_changes;
 
   const parts: string[] = [];
-  if (changes.added.length > 0) parts.push(plural(changes.added.length, "new item", "new items"));
+  if (added.length > 0) parts.push(plural(added.length, "new item", "new items"));
   if (prices.length > 0) parts.push(plural(prices.length, "price change", "price changes"));
-  if (others.length > 0) parts.push(plural(others.length, "other change", "other changes"));
   if (changes.removed.length > 0) parts.push(plural(changes.removed.length, "removed item", "removed items"));
   if (parts.length === 0) return null;
 
   let headline = `Found ${joinParts(parts)}.`;
-  const example = prices[0];
-  if (example) headline += ` ${example.name} now ${formatPrice(example.to)}?`;
+  const example = prices.find((change) => typeof change.new_usd === "number");
+  if (example) headline += ` ${sized(example)} now ${formatPrice(example.new_usd)}?`;
+  else if (added[0]) headline += ` ${itemLine(added[0])}?`;
 
   const lines = [
-    ...changes.added.map((item) => `+ ${itemLine(item)}`),
-    ...prices.map((change) => `• ${change.name} ${formatPrice(change.from)} → ${formatPrice(change.to)}`),
-    ...others.map(
-      (change) =>
-        `• ${change.name}: ${describeValue(change.field, change.from)} → ${describeValue(change.field, change.to)}`,
-    ),
-    ...changes.removed.map((item) => `– ${item.name} (removed)`),
+    ...added.map((item) => `+ ${itemLine(item)}`),
+    ...prices.map(priceChangeLine),
+    ...changes.removed.map((name) => `– ${name} (removed)`),
   ];
   const shown = lines.slice(0, MAX_DETAIL_LINES);
   if (lines.length > shown.length) shown.push(`…and ${lines.length - shown.length} more`);

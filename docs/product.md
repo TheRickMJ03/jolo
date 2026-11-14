@@ -55,7 +55,7 @@ Each is tagged by who builds it: **I** = Isaiah, **B** = Bhavesh, **R** = Ricard
 | Sponsor | Track | Fit | Status |
 |---|---|---|---|
 | **Photon** | Agents in iMessage | The whole owner and customer experience is an iMessage agent, built on Photon's Spectrum SDK | **Going for it** |
-| Amazon | AWS | Models served on EC2 (g6.2xlarge), GPU for SAM 3 and fine-tuning | Bhavesh / Ricardo |
+| Amazon | AWS | Models served on EC2 (g6.2xlarge), GPU for the vision model that reads menus | Bhavesh / Ricardo |
 | LangChain | Agent loop and tools | The agent loop | Bhavesh |
 | Scale AI | Human-verified labels and evaluation | The menu reader's eval set | Ricardo |
 | D. E. Shaw | Measured ranking gains, rigor | Possible fit: search reranking | **Check the prize criteria** |

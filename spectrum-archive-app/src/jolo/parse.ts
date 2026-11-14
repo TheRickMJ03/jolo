@@ -38,6 +38,23 @@ export function parseConfirm(text: string): boolean | null {
   ]);
 }
 
+const FIX_WORDS = new Set([
+  "should", "change", "rename", "remove", "delete", "add", "called", "except", "but", "instead",
+  "actually", "size", "sizes", "spelled", "price", "prices", "oz",
+]);
+
+/**
+ * The answer to the change summary: a clean yes or no, a correction to pass to
+ * the agent ("no, the cortado is 4.50", "yes but the small is 12 oz"), or null
+ * when it's unclear. Anything with a number or a fixing word is a correction,
+ * even when it starts with yes or no, so a fix is never saved or thrown away.
+ */
+export function parseConfirmReply(text: string): boolean | "correction" | null {
+  const tokens = words(text);
+  if (/\d/.test(text) || tokens.some((token) => FIX_WORDS.has(token))) return "correction";
+  return parseConfirm(text);
+}
+
 const FULL = new Set(["full", "whole", "entire", "entirety", "all", "everything", "complete"]);
 const PARTIAL = new Set(["part", "partial", "partly", "some", "section", "only", "half", "portion", "piece"]);
 

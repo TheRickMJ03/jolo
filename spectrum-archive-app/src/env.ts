@@ -117,4 +117,4 @@ export const apiKey = read("API_KEY");
 export const agentUrl = read("AGENT_URL")?.replace(/\/+$/, "");
 export const agentToken = read("AGENT_TOKEN");
 // Generous by default: reading a menu photo on a GPU takes a while.
-export const agentTimeoutMs = positiveInt("AGENT_TIMEOUT_MS", 120_000);
+export const agentTimeoutMs = positiveInt("AGENT_TIMEOUT_MS", 300_000);

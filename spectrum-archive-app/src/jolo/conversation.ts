@@ -8,7 +8,7 @@ import { getRecord, touch } from "../store.ts";
 import { AgentError, type AgentClient } from "./agent-client.ts";
 import { type CollectedContent, collectContent, MAX_PHOTOS } from "./content.ts";
 import { confirmSummary, copy } from "./copy.ts";
-import { parseConfirm, parseName, parseRole, parseScope } from "./parse.ts";
+import { parseConfirmReply, parseName, parseRole, parseScope } from "./parse.ts";
 import type { AgentAction, JoloState, TurnEvent } from "./types.ts";
 
 export interface JoloContext {
@@ -38,7 +38,8 @@ export async function handleJolo(ctx: JoloContext): Promise<void> {
 
     const hasPhotos = content.photos.length > 0;
 
-    // A pending question is answered by text. A new photo starts over instead.
+    // A pending question is answered by text. A photo sent meanwhile is another
+    // part of the same menu: it goes to the agent, which merges it in.
     if (state.pending && !hasPhotos) {
       const event = answerEvent(state.pending, content.text);
       if (!event) {
@@ -56,6 +57,11 @@ export async function handleJolo(ctx: JoloContext): Promise<void> {
       return;
     }
 
+    if (hasPhotos) {
+      // A read takes 15 to 100 seconds, so say so before starting it.
+      await say(state.updating ? copy.readingMore : copy.reading);
+      state.updating = true;
+    }
     await callAgent(ctx, state, { type: "message", text: content.text, photos: content.photos });
   } finally {
     touch(space.id);
@@ -67,8 +73,9 @@ function answerEvent(pending: "scope" | "confirm", text: string): TurnEvent | nu
     const scope = parseScope(text);
     return scope ? { type: "scope", scope } : null;
   }
-  const confirmed = parseConfirm(text);
-  return confirmed === null ? null : { type: "confirm", confirmed };
+  const reply = parseConfirmReply(text);
+  if (reply === null) return null;
+  return reply === "correction" ? { type: "correction", text: text.trim() } : { type: "confirm", confirmed: reply };
 }
 
 async function onboard(
@@ -134,9 +141,14 @@ async function callAgent(ctx: JoloContext, state: JoloState, event: TurnEvent): 
   }
 
   // The agent answered, so whatever was pending has been dealt with; any new
-  // question comes from the actions below.
+  // question comes from the actions below. A photo that couldn't be read is
+  // the exception: the question the owner was on still stands.
+  const wasPending = state.pending;
   delete state.pending;
   for (const action of actions) await render(action, state, ctx.say);
+  const failed = actions.some((action) => action.type === "unreadable_photo" || action.type === "reader_down");
+  if (failed && !state.pending && wasPending) state.pending = wasPending;
+  if (!state.pending) delete state.updating;
 }
 
 async function render(
@@ -170,6 +182,12 @@ async function render(
       return;
     case "not_owner":
       await say(copy.notOwner);
+      return;
+    case "unreadable_photo":
+      await say(copy.unreadablePhoto);
+      return;
+    case "reader_down":
+      await say(copy.readerDown);
       return;
   }
 }

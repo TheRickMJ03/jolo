@@ -13,11 +13,14 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 
 function validChanges(value: unknown): value is MenuChanges {
   if (!isObject(value)) return false;
-  const { added, changed, removed } = value;
-  const named = (list: unknown) =>
-    Array.isArray(list) && list.every((entry) => isObject(entry) && typeof entry.name === "string");
-  return named(added) && named(removed) && named(changed) && (changed as unknown[]).every(
-    (entry) => typeof (entry as Record<string, unknown>).field === "string",
+  const { added, price_changes, removed } = value;
+  const items = (list: unknown) =>
+    Array.isArray(list) && list.every((entry) => isObject(entry) && typeof entry.item === "string");
+  return (
+    items(added) &&
+    items(price_changes) &&
+    Array.isArray(removed) &&
+    removed.every((name) => typeof name === "string")
   );
 }
 
@@ -53,9 +56,13 @@ export function parseActions(body: unknown): AgentAction[] {
           ...(typeof raw.version === "number" ? { version: raw.version } : {}),
         });
         break;
+      case "unreadable_photo":
+        actions.push({ type: "unreadable_photo", ...(typeof raw.reason === "string" ? { reason: raw.reason } : {}) });
+        break;
       case "ask_scope":
       case "cancelled":
       case "not_owner":
+      case "reader_down":
         actions.push({ type: raw.type });
         break;
       default:

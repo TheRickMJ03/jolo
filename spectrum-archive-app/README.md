@@ -96,15 +96,18 @@ This is JOLO's iMessage voice. With `AGENT_URL` set, `respond()` hands every mes
 
 1. **Onboarding (first contact).** JOLO asks the person's name, then whether they're a café owner or a customer. The answers are kept per conversation, and `/reset` starts over.
 2. **Everything after that goes to Bhavesh's agent** via `POST {AGENT_URL}/v1/turn`. The bridge sends:
-   - the text and photos (base64, `image/*` only, at most 5, each up to 10 MB)
+   - the text and photos (the original file as base64, never resized; `image/*` only, at most 5, each up to 10 MB)
+   - "Reading your menu…" to the owner first, whenever there's a photo, because a read takes 15 to 100 seconds
    - the sender's handle, taken from iMessage itself, never from the message text
 3. **The agent answers with actions**, and the bridge picks the wording:
    - `ask_scope` → "Is this your full menu, or just part of it?"
    - `confirm_changes` → "Found 2 new items and 3 price changes. Cortado now $4.75?"
    - `menu_updated` → "Your menu is updated ✅"
+   - `unreadable_photo` → "I couldn't read that photo. Can you send a clearer one?"
+   - `reader_down` → "I can't read menus right now. Try again in a minute."
    - …and so on.
 
-   While a question is pending, the owner's reply is parsed as the answer ("Just part of it" → `partial`, "Yes, all correct" → yes). An unclear reply gets asked again without calling the agent.
+   While a question is pending, the owner's reply is parsed as the answer ("Just part of it" → `partial`, "Yes, all correct" → yes). A reply with a fix in it ("no, the cortado is 4.50") goes to the agent as a `correction` and the updated summary comes back. An unclear reply gets asked again without calling the agent. A photo sent while an update is open joins it, so a menu can be sent in parts.
 
 The wording is in [`src/jolo/copy.ts`](src/jolo/copy.ts) and [`../docs/conversation-design.md`](../docs/conversation-design.md). The contract is in [`../docs/contracts.md`](../docs/contracts.md). Commands and archiving work the same as before, and every JOLO message is archived.
 
@@ -298,7 +301,7 @@ npm test
 The tests need no credentials, network or AWS. Each test file gets its own temp archive and never reads `.env`. They cover:
 
 - the `respond()` guards and dedupe
-- the JOLO conversation end to end against the stub agent over HTTP: onboarding, the owner's scope and yes/no flow, a customer question, `not_owner`, the agent being down, photo limits
+- the JOLO conversation end to end against the stub agent over HTTP: onboarding, the wait message, the owner's scope and yes/no flow, corrections, several photos of one menu, both reader failures, a customer question, `not_owner`, the agent being down, photo limits
 - the reply parsers (scope, yes/no, role, name) and the change summary
 - the writer's schema, path, spool replay and failure handling
 - reader merging, filters and ordering
