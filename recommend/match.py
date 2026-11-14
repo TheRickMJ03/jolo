@@ -150,7 +150,8 @@ def _recommendable(item: dict, phrase: str, taste: dict) -> bool:
     avoid = (taste.get("facets") or {}).get("avoid")
     if hits_avoid(phrase, avoid) or hits_avoid(item.get("item") or "", avoid):
         return False
-    if name_overlap(phrase, item.get("item") or "") <= 0:
+    # At least half the trend's words: "oat milk shaken espresso" is not a plain espresso.
+    if name_overlap(phrase, item.get("item") or "") < 0.5:
         return False
     return True
 

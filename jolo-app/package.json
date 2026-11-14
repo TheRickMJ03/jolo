@@ -16,6 +16,7 @@
     "emulators": "firebase emulators:start --only auth,firestore --project demo-jolo",
     "seed:emulator": "node scripts/seed-emulator.mjs",
     "seed:cafes": "node scripts/seed-cafes.mjs",
+    "seed:trends-demo": "node scripts/seed-trends-demo.mjs",
     "link-owner": "node scripts/link-owner.mjs"
   },
   "dependencies": {

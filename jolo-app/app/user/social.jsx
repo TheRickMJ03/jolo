@@ -1,41 +1,23 @@
 import { useMemo, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { Palette } from "@/constants/Colors";
 import { Radius, Spacing, Typography } from "@/constants/Typography";
-
-const TRENDING = [
-  {
-    id: "vanilla-latte",
-    name: "Vanilla Latte",
-    location: "Aroma & Crema - Downtown",
-    rating: "4.9",
-    count: 38,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCIn7oOUk1og68BC59qoGwxkiWY2y1Krrc3S7anbSm1-S1th988pZpKp-13DGo_1qw_sztEfH_30nm8TifVFGgQbo2HB9xDt9-1Ux4oUVeOoLoLc-O4qtci5z1TIrXzWrPEIJS4A7EWeTXslzv3BCMp28ZQhjkR6TrCKTCIlX1sdEr_0WV66B88kEwu6Y4M7n8EmZN-TpoPjvDmCETTMpsImqyIZVa9LZ_vgLQc1uNZ5FDj_D6h9v8noY4SPFG2lNr8rA-ctmAHkFk",
-  },
-  {
-    id: "cortado",
-    name: "Oat Milk Cortado",
-    location: "Bean & Leaf - Westside",
-    rating: "4.8",
-    count: 26,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDkLmP71pBZPPbPDZ7Gr7pPTdEMP9UFF5Lj_jt1VCGBfg42ljIW-BZxmgY-DNsLvULfhiP0sFici97Lk1rSwZ0cd6mqScxHPyEUIl2FRe8Uy3mZy0LGphdgPIJnp3qjXkby7m79F8oW5rV25hQvKUBpIBrqAMFzaKq7j3FPfN0_YhEVqn2eKtzFjK3KHnu8fMhtIAAcDX5cKLGN1vn66kxBGOo-JQkZLWaZ_ywgsQ-q50ASIWKAubyslXffiAA_86O5kiBa53e-WZc",
-  },
-  {
-    id: "cold-brew",
-    name: "Caramel Cold Brew",
-    location: "The Roastery Lab",
-    rating: "4.7",
-    count: 19,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAnr5cxvOxU61XNamNND_KWjJt-EePhiSZjwmRYRmYpmfH7UcioekNPv39g_pmoOHW4eeqEQz57_QnXA_Uz1fPK-g3OtrKzdrkMiSVF02PlglTEP3ZHzQk8CuRBHoHs_nuHwipD5NP5UaJavtJl6PbEFW4NwHjlhGznNpj_eK4YsGqr1Pu5sBLbxNPJJSVbSmWQzBzQVcWeUlaaq3QXYKbwHjapVd1fuFpGidWALw_7I5NRNyuQe1BSf6oTXK-f8aAkBSEwu6RclPc",
-  },
-];
+import { useAreaTrends } from "@/hooks/useAreaTrends";
+import { useForYou } from "@/hooks/useForYou";
+import { useAuth } from "@/lib/auth";
+import { formatPrice } from "@/lib/menu";
 
 const INITIAL_POSTS = [
   {
@@ -69,7 +51,14 @@ const INITIAL_POSTS = [
 
 const DRINKS = ["Latte", "Cappuccino", "Cold Brew", "Matcha"];
 
+const SIGNAL_ICONS = { web: "trending-up", new: "sparkles-outline", asks: "chatbubble-outline" };
+
 export default function SocialView() {
+  const { user } = useAuth();
+  const area = useAreaTrends();
+  // Personal picks come from this person's searches; "personal" shows them when they exist.
+  const forYou = useForYou(user, "personal");
+  const picks = forYou.source === "personal" ? forYou.cards : [];
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["68%"], []);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -130,33 +119,68 @@ export default function SocialView() {
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Trending Drinks</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.trendingRow}
-        >
-          {TRENDING.map((item) => (
-            <View key={item.id} style={styles.trendCard}>
-              <Image source={{ uri: item.image }} style={styles.trendImage} />
-              <Text style={styles.trendName} numberOfLines={2}>
-                {item.name}
-              </Text>
-              <View style={styles.trendLoc}>
-                <Ionicons name="location-outline" size={11} color={Palette.onSurfaceVariant} />
-                <Text style={styles.trendLocText} numberOfLines={1}>
-                  {item.location}
-                </Text>
-              </View>
-              <View style={styles.trendRating}>
-                <Ionicons name="star" size={12} color={Palette.secondary} />
-                <Text style={styles.trendRatingText}>
-                  {item.rating} · {item.count} posts
-                </Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+        <Text style={styles.sectionTitle}>Trending near you</Text>
+        {area.loading ? (
+          <ActivityIndicator color={Palette.primary} accessibilityLabel="Finding trending drinks" />
+        ) : area.trending.length === 0 ? (
+          <Text style={styles.emptyLine}>
+            Nothing is trending on local menus yet. Check back after cafés update their menus.
+          </Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingRow}
+          >
+            {area.trending.map((card) => (
+              <DrinkTrendCard
+                key={`${card.cafeId}:${card.itemId}`}
+                card={card}
+                icon={SIGNAL_ICONS[card.signals?.[0]?.kind] ?? "cafe-outline"}
+                onPress={() =>
+                  forYou.record({
+                    type: "open",
+                    cafeId: card.cafeId,
+                    itemId: card.itemId,
+                    itemName: card.itemName,
+                  })
+                }
+              />
+            ))}
+          </ScrollView>
+        )}
+
+        <Text style={styles.sectionTitle}>Picked for you</Text>
+        {forYou.loading ? (
+          <ActivityIndicator color={Palette.primary} accessibilityLabel="Finding your picks" />
+        ) : picks.length === 0 ? (
+          <Text style={styles.emptyLine}>
+            Search for drinks in Finder, like "oat milk latte", and JOLO will pick some for you from
+            today's menus.
+          </Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingRow}
+          >
+            {picks.map((card) => (
+              <DrinkTrendCard
+                key={`${card.cafeId}:${card.itemId}`}
+                card={card}
+                icon="heart-outline"
+                onPress={() =>
+                  forYou.record({
+                    type: "open",
+                    cafeId: card.cafeId,
+                    itemId: card.itemId,
+                    itemName: card.itemName,
+                  })
+                }
+              />
+            ))}
+          </ScrollView>
+        )}
 
         <Text style={styles.sectionTitle}>Community Feed</Text>
         <View style={styles.feedList}>
@@ -288,6 +312,42 @@ export default function SocialView() {
   );
 }
 
+/** One drink on a local menu: the café, the menu's price, and why it's here. */
+function DrinkTrendCard({ card, icon, onPress }) {
+  const price = card.priceUsd ?? card.prices?.find((p) => typeof p?.usd === "number")?.usd;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.trendCard, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`${card.itemName} at ${card.cafeName}${
+        typeof price === "number" ? `, ${formatPrice(price)}` : ""
+      }. ${card.why ?? ""}`}
+    >
+      <View style={styles.trendIcon}>
+        <Ionicons name={icon} size={22} color={Palette.primary} />
+      </View>
+      <Text style={styles.trendName} numberOfLines={2}>
+        {card.itemName}
+      </Text>
+      <View style={styles.trendLoc}>
+        <Ionicons name="location-outline" size={11} color={Palette.onSurfaceVariant} />
+        <Text style={styles.trendLocText} numberOfLines={1}>
+          {card.cafeName}
+        </Text>
+      </View>
+      {typeof price === "number" ? (
+        <Text style={styles.trendPrice}>{formatPrice(price)}</Text>
+      ) : null}
+      {card.why ? (
+        <Text style={styles.trendWhy} numberOfLines={3}>
+          {card.why}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Palette.background },
   headerSafe: { backgroundColor: Palette.background, position: "relative", zIndex: 20 },
@@ -356,11 +416,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(211,195,192,0.4)",
   },
-  trendImage: {
-    width: "100%",
-    height: 96,
+  trendIcon: {
+    width: 44,
+    height: 44,
     borderRadius: Radius.md,
-    backgroundColor: Palette.surfaceContainerHigh,
+    backgroundColor: Palette.secondaryContainer,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 8,
   },
   trendName: {
@@ -381,17 +443,25 @@ const styles = StyleSheet.create({
     color: Palette.onSurfaceVariant,
     flexShrink: 1,
   },
-  trendRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 6,
-  },
-  trendRatingText: {
+  trendPrice: {
     ...Typography.labelMd,
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: Palette.secondary,
+    marginTop: 6,
+    fontVariant: ["tabular-nums"],
+  },
+  trendWhy: {
+    ...Typography.labelMd,
+    fontSize: 11,
+    lineHeight: 15,
+    color: Palette.onSurfaceVariant,
+    marginTop: 4,
+  },
+  emptyLine: {
+    ...Typography.bodySm,
+    color: Palette.onSurfaceVariant,
+    marginBottom: Spacing.sm,
   },
 
   feedList: {

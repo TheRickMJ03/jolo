@@ -136,6 +136,7 @@ To show the "updates live" moment, edit `cafes/demo-barbaras` in the emulator UI
 | `npm run lint`, `npm run format:check`, `npm run typecheck` | Static checks; CI runs all of these |
 | `npm run emulators` | Local Auth and Firestore emulators |
 | `npm run seed:emulator` | Demo café in the emulator; refuses to run against anything else |
+| `npm run seed:trends-demo` | Demo menus with history, demo customers, and (with `OWNER_CAFE_ID`) a menu and insights for that café; emulator only. Then run the trends job: [`../docs/trends-and-insights.md`](../docs/trends-and-insights.md) |
 | `npm run seed:cafes` | The ~70 Union County cafés for the Finder, into the emulator only. `FIRESTORE_PROJECT_ID` defaults to `jolo-ec76d`, the project the app reads |
 | `npm run link-owner -- …` | Set or unset a café's `ownerPhone` (dry run unless `--yes`) |
 

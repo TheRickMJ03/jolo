@@ -98,6 +98,13 @@ service cloud.firestore {
         allow read: if isOwner(cafeId);
         allow write: if false;
       }
+
+      // Analytics signals (other shops, asks nearby, web trends): written by
+      // the recommend job, read by the owner only.
+      match /analytics/{document} {
+        allow read: if isOwner(cafeId);
+        allow write: if false;
+      }
     }
 
     // Profiles (from the JOLO app): any signed-in user can read them; only the
@@ -130,6 +137,13 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid == uid;
         allow write: if false;
       }
+    }
+
+    // Drinks trending on local menus, for the customer Social tab. Aggregates
+    // only, never a person. The recommend job writes it.
+    match /areas/{area} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
 
     // Shared niche cache. The worker writes it; clients never do.

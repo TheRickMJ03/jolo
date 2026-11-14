@@ -1,10 +1,14 @@
 """Read a person's events, fill the shared niche cache, write their cards.
+With --analytics, also write the owner Insights signals and the area trends.
 
 A niche younger than seven days is reused and only rematched against menus.
-Scraped pages never land in Firestore: the niche document stores drink names.
+Scraped pages never land in Firestore: the niche document stores drink names
+and, per source, a headline and link as the example.
 
     python -m recommend.job --demo
     python -m recommend.job --uid USER_ID --scrape
+    python -m recommend.job --analytics --demo-trends   # no network: sample trends
+    python -m recommend.job --analytics --scrape         # blogs + Reddit, live
 """
 from __future__ import annotations
 
@@ -12,6 +16,7 @@ import argparse
 import os
 from datetime import datetime, timedelta, timezone
 
+from recommend.analytics import AREA_ID, area_doc, is_drink_name, niche_entry, owner_signals
 from recommend.extract import extract_drinks
 from recommend.match import match_cards
 from recommend.profile import build_profile, coerce_time, slugify
@@ -94,6 +99,8 @@ class MemoryStore:
         self.niches = dict(niches or {})
         self.tastes = {}
         self.recommendations = {}
+        self.owner_analytics = {}
+        self.areas = {}
 
     def list_events(self, uid: str, since: datetime | None = None) -> list[dict]:
         rows = []
@@ -119,15 +126,50 @@ class MemoryStore:
     def list_menus(self) -> list[dict]:
         return list(self.menus)
 
+    def list_all_events(self, since: datetime | None = None) -> list[dict]:
+        rows = []
+        for uid in self.events:
+            for event in self.list_events(uid, since):
+                rows.append({**event, "uid": uid})
+        return rows
+
+    def list_cafes(self) -> list[dict]:
+        """Every café with a menu, its current items and its version history."""
+        return [
+            {
+                "versions": menu.get("versions") or [],
+                **menu,
+            }
+            for menu in self.menus
+        ]
+
+    def list_niche_docs(self) -> list[dict]:
+        return list(self.niches.values())
+
+    def put_owner_analytics(self, cafe_id: str, document: dict) -> None:
+        self.owner_analytics[cafe_id] = document
+
+    def put_area(self, area_id: str, document: dict) -> None:
+        self.areas[area_id] = document
+
 
 class FirestoreStore:
-    """Admin SDK. Uses FIRESTORE_EMULATOR_HOST when it is set."""
+    """Admin SDK against a real project, or an anonymous client against the emulator."""
 
     def __init__(self, project_id: str | None = None):
+        project = project_id or os.environ.get("FIRESTORE_PROJECT_ID", "jolo-ec76d")
+        if os.environ.get("FIRESTORE_EMULATOR_HOST"):
+            # The emulator needs no credentials, and with the host set the
+            # client can only ever reach the emulator.
+            from google.auth.credentials import AnonymousCredentials
+            from google.cloud import firestore as cloud_firestore
+
+            self.db = cloud_firestore.Client(project=project, credentials=AnonymousCredentials())
+            return
+
         import firebase_admin
         from firebase_admin import firestore
 
-        project = project_id or os.environ.get("FIRESTORE_PROJECT_ID", "jolo-ec76d")
         if not firebase_admin._apps:
             firebase_admin.initialize_app(options={"projectId": project})
         self.db = firestore.client()
@@ -178,6 +220,52 @@ class FirestoreStore:
             )
         return menus
 
+    def list_all_events(self, since: datetime | None = None) -> list[dict]:
+        """Every customer's events, tagged with the uid from the document path."""
+        rows = []
+        for snapshot in self.db.collection_group("events").stream():
+            parent = snapshot.reference.parent.parent
+            if parent is None or snapshot.reference.parent.parent.parent.id != "users":
+                continue
+            data = snapshot.to_dict() or {}
+            created = coerce_time(data.get("createdAt"))
+            if since and created and created < since:
+                continue
+            rows.append({**data, "uid": parent.id})
+        return rows
+
+    def list_cafes(self) -> list[dict]:
+        cafes = []
+        for cafe in self.db.collection("cafes").stream():
+            data = cafe.to_dict() or {}
+            row = {
+                "cafeId": cafe.id,
+                "cafeName": data.get("name") or "Café",
+                "municipality": data.get("municipality"),
+                "ownerPhone": data.get("ownerPhone"),
+                "menuUpdatedAt": data.get("menuUpdatedAt"),
+                "items": [],
+                "versions": [],
+            }
+            current = data.get("currentMenuVersion") or 0
+            if current > 0:
+                versions = [snap.to_dict() or {} for snap in cafe.reference.collection("menuVersions").stream()]
+                row["versions"] = versions
+                for version in versions:
+                    if version.get("version") == current:
+                        row["items"] = version.get("items") or []
+            cafes.append(row)
+        return cafes
+
+    def list_niche_docs(self) -> list[dict]:
+        return [snap.to_dict() or {} for snap in self.db.collection("niches").stream()]
+
+    def put_owner_analytics(self, cafe_id: str, document: dict) -> None:
+        self.db.collection("cafes").document(cafe_id).collection("analytics").document("current").set(document)
+
+    def put_area(self, area_id: str, document: dict) -> None:
+        self.db.collection("areas").document(area_id).set(document)
+
 
 def run_job(store, uid: str, *, scrape=None, now: datetime | None = None) -> dict:
     """Rebuild taste, reuse or fill niches, write recommendations/current."""
@@ -211,9 +299,76 @@ def run_job(store, uid: str, *, scrape=None, now: datetime | None = None) -> dic
         )
         drinks.extend(extracted)
 
+    # Cached niches may hold fragments or staples from before the name filter.
+    drinks = [drink for drink in drinks if is_drink_name(drink.get("name") or "")]
     cards = match_cards(drinks, store.list_menus(), taste, now=now)
     store.put_recommendations(uid, {"cards": cards, "niches": taste["niches"], "updatedAt": now})
     return {"taste": taste, "cards": cards}
+
+
+def refresh_niche(store, niche: str, now: datetime, *, scrape_blogs=None, scrape_social=None) -> dict | None:
+    """Reuse a niche scraped in the last seven days, or scrape it now when scrapers are given."""
+    slug = slugify(niche)
+    existing = store.get_niche(slug)
+    if niche_is_fresh(existing, now) and existing.get("sources"):
+        return existing
+    if scrape_blogs is None and scrape_social is None:
+        return existing
+    blogs, blog_error = None, None
+    if scrape_blogs is not None:
+        try:
+            blogs = scrape_blogs(niche)
+        except Exception as error:  # one source failing never stops the others
+            blog_error = str(error)[:200]
+    social = scrape_social(niche) if scrape_social is not None else {}
+    document = {"slug": slug, **niche_entry(niche, blogs, social, now, blog_error)}
+    store.put_niche(slug, document)
+    return document
+
+
+def demo_niche_docs(now: datetime) -> list[dict]:
+    """The fixed sample trends, labelled as sample data so the app can say so."""
+    docs = []
+    for niche in FIXED_NICHES:
+        trends = DEMO_TRENDS[niche]
+        entry = niche_entry(niche, None, {}, now)
+        drinks = [{**drink, "sources": ["demo"], "mentions": 0, "example": None} for drink in extract_drinks(trends)]
+        docs.append(
+            {
+                "slug": slugify(niche),
+                **entry,
+                "drinks": drinks,
+                "sources": {"demo": {"ok": True, "error": None, "posts": len(trends.get("titles") or [])}},
+            }
+        )
+    return docs
+
+
+def run_analytics(store, *, scrape_blogs=None, scrape_social=None, now: datetime | None = None) -> dict:
+    """Refresh niches, then write the area trends, every owner's signals, and every active person's cards."""
+    now = coerce_time(now, datetime.now(timezone.utc))
+    events = store.list_all_events(since=now - EVENT_WINDOW)
+    by_uid: dict[str, list[dict]] = {}
+    for event in events:
+        by_uid.setdefault(event["uid"], []).append(event)
+
+    niches = list(FIXED_NICHES)
+    for uid_events in by_uid.values():
+        for niche in build_profile(uid_events, now=now)["niches"]:
+            if niche not in niches:
+                niches.append(niche)
+    for niche in niches[:10]:
+        refresh_niche(store, niche, now, scrape_blogs=scrape_blogs, scrape_social=scrape_social)
+
+    niche_docs = store.list_niche_docs()
+    cafes = store.list_cafes()
+    store.put_area(AREA_ID, area_doc(cafes, events, niche_docs, now))
+    owners = [cafe for cafe in cafes if cafe.get("ownerPhone")]
+    for cafe in owners:
+        store.put_owner_analytics(cafe["cafeId"], owner_signals(cafe, cafes, events, niche_docs, now))
+    for uid in by_uid:
+        run_job(store, uid, now=now)
+    return {"niches": len(niche_docs), "cafes": len(cafes), "owners": len(owners), "people": len(by_uid)}
 
 
 def _item(item_id, name, category, usd, **extra):
@@ -286,6 +441,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--uid", help="Firebase Auth uid to rebuild")
     parser.add_argument("--scrape", action="store_true", help="Scrape niches older than 7 days")
     parser.add_argument("--demo", action="store_true", help="Match five fixed niches to Barbara's. No network.")
+    parser.add_argument("--analytics", action="store_true", help="Write owner signals, area trends and everyone's cards")
+    parser.add_argument("--demo-trends", action="store_true", help="With --analytics: store the sample trends as niches")
+    parser.add_argument("--no-reddit", action="store_true", help="With --scrape: blogs only")
     parser.add_argument("--project", default=os.environ.get("FIRESTORE_PROJECT_ID", "jolo-ec76d"))
     args = parser.parse_args(argv)
 
@@ -301,8 +459,29 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {card['why']}")
         return 0
 
+    if args.analytics:
+        store = FirestoreStore(args.project)
+        now = datetime.now(timezone.utc)
+        if args.demo_trends:
+            for document in demo_niche_docs(now):
+                store.put_niche(document["slug"], document)
+        scrape_social = None
+        if args.scrape and not args.no_reddit:
+            from recommend.social import scrape_social
+        summary = run_analytics(
+            store,
+            scrape_blogs=scrape_niche if args.scrape else None,
+            scrape_social=scrape_social,
+            now=now,
+        )
+        print(
+            f"{summary['niches']} niches, {summary['cafes']} cafés, "
+            f"{summary['owners']} owners and {summary['people']} people updated."
+        )
+        return 0
+
     if not args.uid:
-        parser.error("--uid is required unless --demo")
+        parser.error("--uid is required unless --demo or --analytics")
 
     store = FirestoreStore(args.project)
     result = run_job(store, args.uid, scrape=scrape_niche if args.scrape else None)

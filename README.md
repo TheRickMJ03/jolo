@@ -42,6 +42,7 @@ Firestore  cafes/{id} · menuVersions/{n} · insights/{week}   ◀── jolo-ap
 | [`docs/test-flow.md`](docs/test-flow.md) | How to test it, stage by stage, from unit tests to a real text message |
 | [`docs/model-plan.md`](docs/model-plan.md) | The team's model plan |
 | [`docs/product.md`](docs/product.md), [`docs/design/brand.md`](docs/design/brand.md) | User stories, business model, sponsor prizes, brand |
+| [`docs/trends-and-insights.md`](docs/trends-and-insights.md) | The data scraper: owner Insights, customer trends, and how to run the job |
 | [`docs/drink-recommendations.md`](docs/drink-recommendations.md) | User side: taste, scrape, and drink cards from the live menu |
 | [`menu_reader/README.md`](menu_reader/README.md) | The menu reader's full reference, results and known limits |
 

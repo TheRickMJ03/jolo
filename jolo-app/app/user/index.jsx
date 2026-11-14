@@ -21,6 +21,8 @@ import { Palette } from "@/constants/Colors";
 import { Radius, Spacing, Typography } from "@/constants/Typography";
 import { useCafes } from "@/hooks/useCafes";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { useAuth } from "@/lib/auth";
+import { writeEvent } from "@/lib/events-store";
 import {
   UNION_COUNTY_REGION,
   distanceMiles,
@@ -49,6 +51,7 @@ export default function FinderView() {
   const markerPressRef = useRef(false);
   const listRef = useRef(null);
 
+  const { user } = useAuth();
   const { cafes, loading, error, reload } = useCafes();
   const { coords } = useUserLocation();
   const nearby = coords != null && isInServiceArea(coords);
@@ -159,6 +162,7 @@ export default function FinderView() {
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
+            onSubmitEditing={() => recordSearch(user, query)}
             autoCorrect={false}
             clearButtonMode="while-editing"
           />
@@ -266,6 +270,19 @@ export default function FinderView() {
         </BottomSheet>
       </View>
     </View>
+  );
+}
+
+/**
+ * A submitted search is one event in users/{uid}/events. It shapes this
+ * person's picks on Social, and counts (never who) in owners' "Asked about".
+ * Losing one is harmless, so a failed write is only logged.
+ */
+function recordSearch(user, text) {
+  const trimmed = String(text ?? "").trim();
+  if (!user?.uid || trimmed.length < 3) return;
+  writeEvent(user.uid, { type: "search", text: trimmed }).catch((error) =>
+    console.warn(`[jolo] search not recorded: ${error?.message ?? error}`),
   );
 }
 

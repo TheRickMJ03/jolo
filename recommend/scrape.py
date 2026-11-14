@@ -129,12 +129,16 @@ def scrape_niche(
 
     trends = dict(payload.get("trends") or {})
     titles = []
+    posts = []
     for site in payload.get("sites") or []:
         for post in site.get("posts") or []:
             title = (post.get("title") or "").strip()
             if title:
                 titles.append(title)
+                posts.append({"title": title[:200], "url": post.get("url"), "source": "blogs"})
     trends["titles"] = titles
+    # Title and link only: the page text stays in the deleted temp dir.
+    trends["posts"] = posts
     return trends
 
 

@@ -103,6 +103,10 @@ The document ID is the Monday that starts the week (`"2026-11-09"`). Bhavesh's w
 }
 ```
 
+### `cafes/{cafeId}/analytics/current`, `areas/{areaId}`, `niches/{slug}`
+
+Written by the recommend job (`python -m recommend.job --analytics`), never by a client. `analytics/current` is the owner's Insights signals (other shops, asks nearby, web trends) and only that café's owner can read it. `areas/{areaId}` holds drinks trending on local menus for the customer Social tab, readable by anyone signed in. `niches/{slug}` is the job's scrape cache. Shapes and sources: [`trends-and-insights.md`](trends-and-insights.md).
+
 ### `users/{uid}`
 
 Unchanged from the JOLO app. Phone sign-in users get a profile too.

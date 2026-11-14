@@ -53,6 +53,8 @@ beforeEach(async () => {
       weekStart: "2026-11-09",
       counts: {},
     });
+    await setDoc(doc(db, "cafes/cafe1/analytics/current"), { otherShops: [] });
+    await setDoc(doc(db, "areas/union-county-nj"), { name: "Union County", trending: [] });
     await setDoc(doc(db, "cafes/cafe2"), { name: "Someone else's", ownerPhone: "+12015550000" });
     await setDoc(doc(db, "users/alice"), { displayName: "Alice" });
     await setDoc(doc(db, "users/alice/private/account"), { email: "alice@example.com" });
@@ -195,6 +197,32 @@ describe("insights", () => {
 });
 
 // Unchanged from the JOLO app: these rules are shared by both apps.
+describe("analytics", () => {
+  it("lets only the café's owner read its signals", async () => {
+    await assertSucceeds(getDoc(doc(asOwner(), "cafes/cafe1/analytics/current")));
+    await assertFails(getDoc(doc(asGuest(), "cafes/cafe1/analytics/current")));
+    await assertFails(getDoc(doc(asUser("alice"), "cafes/cafe1/analytics/current")));
+    await assertFails(
+      getDoc(doc(asPhone("other", "+12015550000"), "cafes/cafe1/analytics/current")),
+    );
+  });
+
+  it("is written by the recommend job only", async () => {
+    await assertFails(
+      setDoc(doc(asOwner(), "cafes/cafe1/analytics/current"), { otherShops: [{ name: "x" }] }),
+    );
+  });
+});
+
+describe("areas", () => {
+  it("lets anyone signed in read area trends, and no client write them", async () => {
+    await assertSucceeds(getDoc(doc(asUser("alice"), "areas/union-county-nj")));
+    await assertSucceeds(getDoc(doc(asOwner(), "areas/union-county-nj")));
+    await assertFails(getDoc(doc(asGuest(), "areas/union-county-nj")));
+    await assertFails(setDoc(doc(asUser("alice"), "areas/union-county-nj"), { trending: [] }));
+  });
+});
+
 describe("users", () => {
   it("are hidden from signed-out visitors", async () => {
     await assertFails(getDoc(doc(asGuest(), "users/alice")));
