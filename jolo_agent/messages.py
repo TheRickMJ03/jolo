@@ -19,6 +19,7 @@ NOTHING_TO_CONFIRM = "There's no menu update waiting. Send me a photo of your me
 NO_CHANGES = "I read it, and nothing differs from the menu I have. No update needed."
 CANCELLED = "OK, I dropped that update. Your menu is unchanged."
 EMPTY_MENU = "That would leave your menu empty, so I didn't save it. Send a photo or tell me what to keep."
+MENU_CHANGED = "Your menu was just changed in the app, so I checked your update against it again."
 NO_MORE = "That's everything I wanted you to check."
 REPLY_YES = 'Reply "yes" to save, or tell me what to fix.'
 EMPTY_MESSAGE = "Send me a message or a menu photo."

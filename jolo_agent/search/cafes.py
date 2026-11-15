@@ -101,7 +101,7 @@ class CafeSearch:
             best = max(result["score"] for result in top) or 1.0
             for result in top:
                 result["relevance"] = result["score"] / best
-            if rerank and self.reranker and query.strip():
+            if rerank and self.reranker and len(query.split()) >= self.settings.get("rerank_min_words", 1):
                 texts = [self._describe(result) for result in top]
                 for result, score in zip(top, self.reranker.score(query, texts)):
                     result["relevance"] = score

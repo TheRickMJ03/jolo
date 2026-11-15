@@ -56,11 +56,26 @@ def local_now(timezone):
     return datetime.now(ZoneInfo(timezone))
 
 
+def spans(day_hours):
+    """["07:00", "11:00", "13:00", "18:00"] -> [("07:00", "11:00"), ("13:00", "18:00")]"""
+    day_hours = day_hours or []
+    return [(day_hours[i], day_hours[i + 1]) for i in range(0, len(day_hours) - 1, 2)]
+
+
+def describe_day(day_hours):
+    """"07:00-11:00, 13:00-18:00", or "closed"."""
+    return ", ".join(f"{start}-{end}" for start, end in spans(day_hours)) or "closed"
+
+
 def is_open(hours, moment):
     """hours: {"mon": ["07:00", "15:00"], ...}. True, False, or None when no hours are stored."""
     if not hours:
         return None
-    today = hours.get(DAYS[moment.weekday()])
-    if not today:
-        return False
-    return today[0] <= moment.strftime("%H:%M") < today[1]
+    now = moment.strftime("%H:%M")
+    for start, end in spans(hours.get(DAYS[moment.weekday()])):
+        if start < end:
+            if start <= now < end:
+                return True
+        elif start <= now or now < end:       # closes after midnight ("20:00" to "02:00")
+            return True
+    return False

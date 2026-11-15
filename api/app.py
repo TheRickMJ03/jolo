@@ -29,7 +29,8 @@ from pydantic import BaseModel
 from api.turn import TurnHandler, TurnRequest
 from jolo_agent.brain import build_brain
 from jolo_agent.insights import weekly_counts
-from jolo_agent.store.models import User, hash_handle, hash_phone
+from jolo_agent.safety import RateLimiter, install_log_masking
+from jolo_agent.store.models import User, hash_handle, hash_phone, to_e164
 
 
 class NewUser(BaseModel):
@@ -57,11 +58,27 @@ def create_app(brain=None):
             return
         raise HTTPException(status_code=401, detail="Missing or wrong X-Jolo-Key / Authorization header")
 
+    install_log_masking()
+    messages_limit = RateLimiter(api_settings.get("rate_limit_messages", 30), api_settings.get("rate_limit_window_seconds", 60))
+    photos_limit = RateLimiter(api_settings.get("rate_limit_photos", 12), api_settings.get("rate_limit_photo_window_seconds", 3600))
+
+    def check_rate(sender, photo_count=0):
+        """429 when this sender is sending too fast; the bridge treats it like any failed call and keeps its question."""
+        if not messages_limit.allow(sender):
+            raise HTTPException(status_code=429, detail="Too many messages. Wait a minute.",
+                                headers={"Retry-After": str(messages_limit.retry_after(sender))})
+        for _ in range(photo_count):
+            if not photos_limit.allow(sender):
+                raise HTTPException(status_code=429, detail="Too many photos this hour.",
+                                    headers={"Retry-After": str(photos_limit.retry_after(sender))})
+
     app = FastAPI(title="JOLO agent", dependencies=[Depends(check_key)])
     app.state.brain = brain
     turns = TurnHandler(brain, wait_seconds=api_settings.get("turn_timeout_seconds", 280),
                         poll_seconds=api_settings.get("turn_poll_seconds", 0.5))
     threading.Thread(target=brain.warm, daemon=True, name="warm-search").start()
+    if brain.settings["store"]["backend"] == "firestore":          # only the app edits menus behind the brain's back
+        brain.start_refresher(brain.settings["search"].get("refresh_seconds", 0))
 
     # Plain "def", not "async def": FastAPI runs these in a thread pool, so a
     # slow model call never blocks other phones' messages.
@@ -71,12 +88,15 @@ def create_app(brain=None):
             hash_phone(phone)
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error))
+        check_rate(phone, len(photos))
         images = [photo.file.read() for photo in photos]       # the original bytes, never resized
         return {"replies": brain.handle_message(phone, text, images)}
 
     @app.post("/v1/turn")
     def post_turn(request: TurnRequest):
         """The iMessage bridge's endpoint (docs/contracts.md section 2): one event in, actions out."""
+        event = request.event
+        check_rate(request.sender.handle.strip(), len(getattr(event, "photos", None) or []))
         return {"actions": turns.handle(request)}
 
     @app.get("/outbox")
@@ -99,6 +119,7 @@ def create_app(brain=None):
             if cafe.owner_phone_hash and cafe.owner_phone_hash != phone_hash:
                 raise HTTPException(status_code=409, detail="This café already has another owner")
             cafe.owner_phone_hash = phone_hash
+            cafe.owner_phone = to_e164(user.phone) or user.phone.strip()
             brain.store.upsert_cafe(cafe)
         brain.store.upsert_user(User(phone_hash=phone_hash, name=user.name, role=user.role,
                                      cafe_id=user.cafe_id if user.role == "owner" else None))
