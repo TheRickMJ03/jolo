@@ -1,6 +1,8 @@
 """Tests for the agent loop, the grounding check and message routing.
 The model is faked, so no server is needed."""
 
+from datetime import date, datetime, timezone
+
 import httpx
 import openai
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -10,7 +12,8 @@ from jolo_agent import messages
 from jolo_agent.agent import ChatModel, ModelDown, describe_tool, parse_actions, run_turn, to_json_mode
 from jolo_agent.brain import NO_GROUNDED_ANSWER, OWNER_HELP
 from jolo_agent.grounding import ungrounded_facts
-from jolo_agent.insights import owner_summary, weekly_counts
+from jolo_agent.insights import (last_week_start, owner_summary, week_bounds, week_counts, week_report, week_summary,
+                                 weekly_counts, write_weekly_insights)
 from jolo_agent.intents import quick_intent
 from jolo_agent.store import Draft, hash_phone
 from jolo_agent.tools import Context, customer_tools, find_cafe_by_phone, owner_tools, resolve_cafe, template_reply
@@ -319,3 +322,79 @@ def test_weekly_counts_and_summary(tmp_path):
     assert owner_summary(store, cafe, FakeModel("You were suggested 40 times!")) == plain    # invented number
     assert owner_summary(store, store.get_cafe("curiosity").model_copy(update={"cafe_id": "nobody"})) \
         .startswith("No activity")
+
+
+# ---------- the weekly insights job ----------
+
+WEEK = date(2026, 11, 2)         # a Monday
+
+
+def event_at(store, kind, cafe_id=None, phone="a", data=None, when="2026-11-04T15:00:00+00:00"):
+    store.add_event(kind, cafe_id, phone, data, created_at=when)
+
+
+def test_week_start_is_the_monday_of_the_last_complete_week():
+    assert last_week_start(date(2026, 11, 9)) == date(2026, 11, 2)       # on a Monday: the week that just ended
+    assert last_week_start(date(2026, 11, 14)) == date(2026, 11, 2)      # on a Saturday: the week before this one
+    assert last_week_start(date(2026, 11, 15)) == date(2026, 11, 2)      # on a Sunday: this week isn't over
+
+
+def test_week_counts_only_cover_that_week_and_that_cafe(tmp_path):
+    brain = make_brain(tmp_path)
+    store, cafe = brain.store, brain.store.get_cafe("barbaras")
+    event_at(store, "search", phone="a", data={"query": "a cortado", "shown": ["barbaras", "curiosity"]})
+    event_at(store, "search", phone="b", data={"query": "cortado near me", "shown": ["barbaras"]})
+    event_at(store, "search", phone="c", data={"query": "matcha", "shown": ["curiosity"]})                 # not Barbara's
+    event_at(store, "menu_view", "barbaras", "a", {"contains": "latte"})
+    event_at(store, "pick", "barbaras", "a")
+    event_at(store, "menu_update", "barbaras", "own")
+    event_at(store, "search", phone="d", data={"query": "cortado", "shown": ["barbaras"]},
+             when="2026-11-09T05:30:00+00:00")                                                              # the next week
+    event_at(store, "search", phone="e", data={"query": "cortado", "shown": ["barbaras"]},
+             when="2026-10-30T12:00:00+00:00")                                                              # the week before
+    counts, top = week_counts(store, cafe, WEEK)
+    assert counts == {"customerQuestions": 3, "uniqueCustomers": 2, "menuUpdates": 1,
+                      "timesSuggested": 2, "timesPicked": 1}
+    assert top == [{"name": "Cortado", "mentions": 2}, {"name": "Latte", "mentions": 1}]
+
+
+def test_the_week_is_cut_at_midnight_in_the_cafes_time_zone():
+    start, end = week_bounds(WEEK, "America/New_York")
+    assert (start, end) == ("2026-11-02T05:00:00+00:00", "2026-11-09T05:00:00+00:00")      # EST after the clocks change
+
+
+def test_the_report_has_the_keys_the_app_reads(tmp_path):
+    brain = make_brain(tmp_path)
+    event_at(brain.store, "search", data={"query": "cortado", "shown": ["barbaras"]})
+    report = week_report(brain.store, brain.store.get_cafe("barbaras"), WEEK, now=datetime(2026, 11, 9, 11, tzinfo=timezone.utc))
+    assert set(report) == {"weekStart", "counts", "topItems", "summary", "generatedAt", "source"}
+    assert report["weekStart"] == "2026-11-02" and report["generatedAt"] == "2026-11-09T11:00:00+00:00"
+    assert {"customerQuestions", "uniqueCustomers", "menuUpdates"} <= set(report["counts"])
+
+
+def test_the_summary_keeps_only_a_model_text_that_matches_the_counts():
+    counts = {"customerQuestions": 3, "uniqueCustomers": 2, "menuUpdates": 1, "timesSuggested": 2, "timesPicked": 1}
+    top = [{"name": "Cortado", "mentions": 2}]
+    plain = week_summary("Barbara's", counts, top)
+    assert "3 questions from 2 people" in plain and "Cortado (2)" in plain
+    assert week_summary("Barbara's", counts, top, FakeModel("3 people asked, mostly about the Cortado.")) \
+        .startswith("3 people asked")
+    assert week_summary("Barbara's", counts, top, FakeModel("Questions rose 40% to 12.")) == plain
+    assert week_summary("Barbara's", counts, top, FakeModel(RuntimeError("down"))) == plain
+    quiet = dict.fromkeys(counts, 0)
+    assert week_summary("Barbara's", quiet, [], FakeModel("This must not be called")).startswith("No customer questions")
+
+
+def test_the_job_writes_one_document_per_owned_cafe_and_can_be_rerun(tmp_path):
+    brain = make_brain(tmp_path)
+    store = brain.store
+    event_at(store, "search", data={"query": "cortado", "shown": ["barbaras"]})
+    first = write_weekly_insights(store, WEEK, now=datetime(2026, 11, 9, 11, tzinfo=timezone.utc))
+    assert list(first) == ["barbaras"]                                 # Curiosity has no owner
+    assert store.get_insight("barbaras", "2026-11-02")["counts"]["customerQuestions"] == 1
+    event_at(store, "search", data={"query": "latte", "shown": ["barbaras"]})
+    write_weekly_insights(store, WEEK)
+    assert store.get_insight("barbaras", "2026-11-02")["counts"]["customerQuestions"] == 2    # replaced, not duplicated
+    write_weekly_insights(store, date(2026, 11, 9), dry_run=True)
+    assert store.get_insight("barbaras", "2026-11-09") is None
+    assert write_weekly_insights(store, WEEK, only="curiosity") == {}

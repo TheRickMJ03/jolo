@@ -1,0 +1,14 @@
+# Runs the weekly insights job every Monday at 06:15 (the VM's time zone: set it to the cafés', e.g.
+# `sudo timedatectl set-timezone America/New_York`). Persistent=true runs a missed Monday at the next boot.
+# Install:  sudo cp deploy/jolo-insights.* /etc/systemd/system/ && sudo systemctl daemon-reload
+#           sudo systemctl enable --now jolo-insights.timer
+# Check:    systemctl list-timers jolo-insights.timer      Run now: sudo systemctl start jolo-insights.service
+[Unit]
+Description=JOLO weekly owner insights, Mondays
+
+[Timer]
+OnCalendar=Mon *-*-* 06:15:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

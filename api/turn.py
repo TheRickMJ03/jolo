@@ -50,7 +50,7 @@ class Sender(BaseModel):
 
 class MessageEvent(BaseModel):
     type: Literal["message"]
-    text: str = ""
+    text: str = Field(default="", max_length=5000)
     photos: list[Photo] = Field(default_factory=list)
 
 
@@ -66,7 +66,7 @@ class ConfirmEvent(BaseModel):
 
 class CorrectionEvent(BaseModel):
     type: Literal["correction"]
-    text: str
+    text: str = Field(max_length=5000)
 
 
 class TurnRequest(BaseModel):

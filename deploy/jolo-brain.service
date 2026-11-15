@@ -1,0 +1,22 @@
+# systemd unit for the brain's API on the VM, next to the vLLM server.
+# Install:  sudo cp deploy/jolo-brain.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#           sudo systemctl enable --now jolo-brain
+# Logs:     journalctl -u jolo-brain -f
+# Edit User and the two paths for your VM. Secrets live in <WorkingDirectory>/.env (see deploy/env.example):
+# the brain reads that file itself, so nothing secret is in this unit.
+[Unit]
+Description=JOLO brain (agent API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/jolo
+ExecStart=/home/ubuntu/jolo/.venv/bin/python scripts/serve_brain.py
+Restart=on-failure
+RestartSec=5
+# A photo read can take 100 s; give a stop that long to finish before the process is killed.
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

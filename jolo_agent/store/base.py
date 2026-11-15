@@ -131,6 +131,16 @@ class Store(ABC):
         """{cafe_id: current menu version} for every café: a cheap way to see which menus changed."""
         return {cafe.cafe_id: cafe.current_version for cafe in self.list_cafes()}
 
+    # ---------- weekly insights ----------
+
+    def save_insight(self, cafe_id, report):
+        """cafes/{cafe_id}/insights/{weekStart}: the weekly job's document for the owner's dashboard."""
+        self._set("insights", f"{cafe_id}__{report['weekStart']}", {**report, "cafe_id": cafe_id})
+
+    def get_insight(self, cafe_id, week_start):
+        doc = self._get("insights", f"{cafe_id}__{week_start}")
+        return {key: value for key, value in doc.items() if key != "cafe_id"} if doc else None
+
     # ---------- drafts ----------
 
     def get_draft(self, phone_hash):
@@ -143,6 +153,9 @@ class Store(ABC):
 
     def delete_draft(self, phone_hash):
         self._delete("drafts", phone_hash)
+
+    def list_drafts(self):
+        return [Draft.model_validate(doc) for doc in self._list("drafts")]
 
     # ---------- corrections and events ----------
 

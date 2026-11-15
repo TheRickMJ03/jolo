@@ -151,10 +151,15 @@ def customer_tools(ctx):
                             "(a drink, a dish, a vibe). near: where they are (a landmark or street), if they said. "
                             "open_now: true to keep only cafés open right now. Returns up to 5 cafés with matching "
                             "menu items and prices."),
-        _tool(get_menu, "The current menu of one café, with prices. contains: only items matching this word, "
+        _tool(get_menu, "The current menu of one café, with prices. cafe_id: the café's name as the customer said "
+                        'it, or the cafe_id from search_cafes. contains: only items matching this word, '
                         'for example "latte".'),
-        _tool(get_hours, "Opening hours of one café for each day, and whether it is open right now."),
-        _tool(distance, "Miles from a place (a landmark or street the customer named) to one café."),
+        _tool(get_hours, "Opening hours of one café for each day, and whether it is open right now. cafe_id: "
+                         "the café's name as the customer said it, or the cafe_id from search_cafes."),
+        _tool(distance, "Miles from a place to one café. Call it for EVERY question about how far a café is from "
+                        "somewhere, even when the place sounds odd or unknown: the tool says whether it knows the "
+                        "place. origin: the place as the customer said it. cafe_id: the café's name as the customer "
+                        "said it, or the cafe_id from search_cafes. Never write an id yourself."),
         _tool(record_pick, "Call this when the customer says which café they chose or that they are going there."),
     ]
 

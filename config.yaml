@@ -79,6 +79,10 @@ common:
       token_env: AGENT_TOKEN   # the bridge sends this as "Authorization: Bearer ..." (blank = no check)
       turn_timeout_seconds: 280   # POST /v1/turn waits this long for a photo read; the bridge gives up at 300
       turn_poll_seconds: 0.5
+      rate_limit_messages: 30          # per sender, per window; over it: HTTP 429
+      rate_limit_window_seconds: 60
+      rate_limit_photos: 12            # photos per sender per hour (each costs a model read)
+      rate_limit_photo_window_seconds: 3600
 
     reads:
       workers: 2               # menu photos read at the same time
@@ -96,6 +100,8 @@ common:
       refresh_seconds: 60      # check for menus edited elsewhere (the app) this often and re-index them; 0 = off
       use_embeddings: true     # false = keyword search (BM25) only
       use_reranker: true
+      device: cpu              # cpu | cuda | auto. cuda is for a host with a GPU, the VM; measure with agent_eval/run_search_eval.py --device cuda
+      rerank_min_words: 1      # skip the reranker for queries shorter than this; 2 = one-word queries use the ranking as it is
       candidates: 50           # hits kept from keyword + vector search
       rerank_top: 8            # cafés the reranker scores; about 0.4 s each on a laptop CPU
       results: 5               # cafés handed to the agent

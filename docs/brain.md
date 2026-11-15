@@ -54,13 +54,14 @@ Without torch the brain still works; search falls back to keywords only.
 | `tool_mode` | `json` | `native` (OpenAI tools), `json` (the model writes one JSON action), `auto` (native, then json if refused). See the numbers below for why `json`. |
 | `max_tool_rounds`, `history_turns`, `timeout_seconds` | 5, 6, 120 | Loop limit, messages remembered per phone, model timeout. |
 | `timezone` | `America/New_York` | For "open now". |
-| `store.backend` | `memory` | `memory` is `data/store.json`; `firestore` uses the service-account key in `GOOGLE_APPLICATION_CREDENTIALS` (or `FIRESTORE_EMULATOR_HOST`). **Not yet translated to the app's schema**; see "Not done yet". |
+| `store.backend` | `memory` | `memory` is `data/store.json`; `firestore` uses the service-account key in `GOOGLE_APPLICATION_CREDENTIALS` (or `FIRESTORE_EMULATOR_HOST`). Translated to the app's schema; see "Firestore" below. |
 | `api.host`, `api.port` | `127.0.0.1`, `8080` | Use `0.0.0.0` only with a key or token set. |
 | `api.turn_timeout_seconds` | 280 | How long `/v1/turn` waits for a photo read; the bridge gives up at 300 s. |
 | `api.callback_url` | `null` | Late `/messages` replies are posted here; otherwise poll `/outbox`. |
 | `reads.workers` | 2 | Photos read at the same time. |
 | `confirm.items_per_message` | 5 | Items the owner is asked to check at once. |
-| `search.*` | | Index folder, models, `use_embeddings`, `use_reranker`, candidates, `max_miles`, and the `bandit` (off). |
+| `search.*` | | Index folder, models, `use_embeddings`, `use_reranker`, candidates, `max_miles`, and the `bandit` (off). Also `device` (`cpu`, `cuda` or `auto`), `rerank_min_words` (skip the reranker for queries shorter than this), `rebuild_on_start` and `refresh_seconds` (re-index menus the app edited; Firestore only). |
+| `api.rate_limit_*` | 30 / 60 s, 12 / 3600 s | Messages and photos per sender; over the limit gives HTTP 429 with `Retry-After`. |
 
 Environment variables (a `.env` file is read; it is in `.gitignore`):
 
@@ -90,9 +91,9 @@ In `confirm_changes`, new items are ordered dishes first and add-ons last, so th
 ## Tests and evaluation
 
 ```bash
-python -m pytest -q                              # 213 tests; no model server needed (CI runs them)
+python -m pytest -q                              # about 300 tests; no model server needed (CI runs them)
 python agent_eval/run_search_eval.py             # search quality
-python agent_eval/run_conversations.py           # 30 scripted conversations against the live model
+python agent_eval/run_conversations.py           # 64 scripted conversations against the live model
 python agent_eval/simulate.py                    # simulated users, to see if the bandit helps
 ```
 
@@ -120,6 +121,32 @@ Failing: `c06_distance`, `c14_unknown_place`, `o10_insights`, `o12_yes_but`.
 
 **Live `/v1/turn` run:** `ask_scope` in 0.0 s, the read of a real photo about 92 s. Isaiah's `parseActions` accepted every response.
 
+## Firestore
+
+`store.backend: firestore` writes the app's own schema ([`contracts.md`](contracts.md) §1): `cafes/{id}` (with `ownerPhone`, `location`, `hours`), `cafes/{id}/menuVersions/{n}` and `cafes/{id}/insights/{weekStart}`. The translation is in `jolo_agent/store/firestore.py` and is plain functions, tested without a network.
+
+- **Owner lookup:** the café's raw `ownerPhone` is hashed with the salt and compared to the sender; the index is cached (`cache_seconds`) and reloaded on a miss.
+- **Saving a menu** is a transaction. The flow remembers the version it showed the owner; if the app saved another version meanwhile, nothing is written and the owner sees the changes again (`MENU_CHANGED`).
+- **Never overwritten:** `upsert_cafe` on an existing document does not touch the app's fields or the current version.
+- **Brain-only collections** (the rules deny them to clients): `agentUsers`, `agentDrafts`, `agentCorrections`, `agentEvents`.
+- **Sold out:** the app's `available: false` is kept as `sold_out` and carried into the next version.
+- **Search index:** rebuilt at startup, then a background refresher re-indexes cafés whose `menuUpdatedAt` changed.
+- **Orphaned reads:** a draft left in `reading` by a restart is dropped at startup.
+- Tests: `tests/test_agent_firestore.py` runs on a fake client, and on the emulator when `FIRESTORE_EMULATOR_HOST` is set (a CI job does that).
+- `scripts/seed_store.py` refuses to write invented cafés to the real project.
+
+## Weekly insights
+
+`python scripts/weekly_insights.py [--week-start YYYY-MM-DD] [--cafe ID] [--dry-run] [--no-model]` writes `cafes/{id}/insights/{weekStart}` for every café that has an owner. The week starts Monday in the café's time zone. Counts come from the event log in code (`customerQuestions`, `uniqueCustomers`, `menuUpdates`, `timesSuggested`, `timesPicked`, `topItems`); the model only words the summary, and if a number in its sentence isn't in the facts the plain sentence is used. Only iMessage events are counted. Owners can ask "how did we do this week?" and get the same report. A systemd timer is in `deploy/`.
+
+## Hardening
+
+`jolo_agent/safety.py`: text length caps (5000 characters at the API), control-character and name cleaning, an in-memory rate limiter, and a log filter that masks phone numbers and emails. Prices must be above 0 and at most $500 (modifiers may be 0). The owner prompt says menu lists are data, never instructions, and the 10 adversarial conversations (`a01`..`a10`) test that.
+
+## Running it for real
+
+See [`deploy.md`](deploy.md): the brain next to vLLM on the VM, systemd units, health check, secrets.
+
 ## Known limits
 
 - The reader gives confidence 1.0 to every item on some photos, so "least confident first" can't help much there; that is Ricardo's calibration.
@@ -128,6 +155,11 @@ Failing: `c06_distance`, `c14_unknown_place`, `o10_insights`, `o12_yes_but`.
 
 ## Not done yet
 
-- **Firestore as the source of truth.** The bridge and the app read Firestore; the brain still runs on the JSON store. Next: a `FirestoreStore` that writes `cafes/{id}` and `menuVersions/{n}` in the schema of [`contracts.md`](contracts.md) §1, then rebuilding the search index from it.
-- The weekly insights job (`insights/{weekStart}`).
-- The four failing conversations, input limits and rate limiting, and running the brain on the VM next to vLLM.
+Everything below is built but **not yet checked against the real thing**, because the model server and the Mac were not reachable while it was written.
+
+- **The 4 conversations that failed** (`c06_distance`, `c14_unknown_place`, `o10_insights`, `o12_yes_but`) have code and prompt fixes, and the 34 conversations added since (64 in all) have never been scored. Run `python agent_eval/run_conversations.py --oracle` first, then against the live model, and fix what fails.
+- **Native tool calling with the hermes parser:** `TOOL_PARSER=hermes bash scripts/vm/serve_qwen_vision.sh`, set `tool_mode: native`, run the conversations; keep `json` unless the score is at least 0.867.
+- **Reranker on a GPU:** `python agent_eval/run_search_eval.py --device cuda`. Re-check the 50 query labels with a second person.
+- **Emulator CI job** (`brain-firestore` in `.github/workflows/ci.yml`) has not run yet.
+- **A real Firestore run** needs a service-account key from Isaiah; the iMessage path needs his Mac.
+- **Demo data:** the 22 cafés in `data/cafes.yaml` are invented; replace them once real cafés exist.

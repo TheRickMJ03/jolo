@@ -121,6 +121,8 @@ Unchanged from the JOLO app. Phone sign-in users get a profile too.
 | `…/menuVersions/{v}` | anyone (customers ask about menus) | Only the owner can create version `current + 1`. Versions are never updated or deleted. |
 | `…/insights/{week}` | owner only | Admin SDK only |
 
+**What the brain adds.** It writes `cafes/{id}/menuVersions/{n}` with `source: "imessage"` and `createdBy.phone`, plus one extra field on the version, `agentSource` (photo, owner_text or seed). Items keep their `id` across versions (matched by name and category); `available: false` is what the brain calls "sold out". `insights/{weekStart}` written by the brain has `source: "imessage"` and counts only iMessage conversations. Its own data lives in `agentUsers`, `agentDrafts`, `agentCorrections` and `agentEvents`; the rules deny them to every client. Hours may have several spans per day, and a close time before the open time means the café closes after midnight.
+
 The owner is the signed-in user whose **verified** phone number (`request.auth.token.phone_number`, which comes from Firebase Phone Auth) equals `cafes/{id}.ownerPhone`. The agent uses the Admin SDK, so these rules don't apply to it. The agent must apply the same ownership check itself; see §2.
 
 > **Shared project warning.** The JOLO app and this hackathon app both use `jolo-ec76d`, and deploying rules replaces them for the whole project. `jolo-app/firestore.rules` therefore also contains the JOLO app's existing `users` rules. Keep the two in sync, or give the hackathon its own Firebase project.

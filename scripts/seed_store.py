@@ -80,11 +80,10 @@ def main():
 
     config = load_config()
     settings = config["agent"]["store"]
-    if settings["backend"] == "firestore" and not os.environ.get("FIRESTORE_EMULATOR_HOST")             and not args.really_write_to_firestore:
-        sys.exit("This would write the 22 invented demo cafés into the real Firestore project that the app uses.
-"
-                 "Use the emulator (set FIRESTORE_EMULATOR_HOST), or pass --really-write-to-firestore if you mean it.
-"
+    if (settings["backend"] == "firestore" and not os.environ.get("FIRESTORE_EMULATOR_HOST")
+            and not args.really_write_to_firestore):
+        sys.exit("This would write the 22 invented demo cafés into the real Firestore project that the app uses.\n"
+                 "Use the emulator (set FIRESTORE_EMULATOR_HOST), or pass --really-write-to-firestore if you mean it.\n"
                  "To only link an owner to a café that already exists, you don't need this script: set the café's ownerPhone.")
     if args.reset:
         if settings["backend"] != "memory":
