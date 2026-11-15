@@ -37,7 +37,9 @@ If an owner's first message is a photo, it isn't lost: once onboarding finishes,
 | Unclear answer | Sorry, I didn't catch that. Is the photo your "full" menu, or just "part" of it? |
 | Agent returns `confirm_changes` | Found 2 new items and 3 price changes. Cortado now $4.75? |
 |  | followed by up to 6 lines, e.g. `+ Oat Latte $5.00`, `+ Latte 12 oz $3.50 / 16 oz $4.25`, `• Cortado $4.50 → $4.75`, `• Latte (16 oz) $4.25 → $4.50`, `– Muffin (removed)` |
+|  | If there are more: `…and 3 more. Reply "menu" to see the whole menu.` |
 |  | Reply "yes" to save or "no" to cancel. If something is off, tell me what to fix. |
+| The owner asks to see the whole menu | Here's the whole menu: then every line, then the same yes/no question. Nothing is saved, and the agent is not called. |
 | Unclear answer | Reply "yes" to save these changes, or "no" to leave your menu as it is. Or tell me what to fix, like "the cortado is 4.50". |
 | The owner replies with a fix | The fix goes to the agent as a `correction`; the updated summary comes back and the question is asked again. |
 | Agent returns `menu_updated` | Your menu is updated ✅ |
@@ -61,9 +63,10 @@ Accepted answers:
 | Scope | **partial** | part, partial, some, just a section, only, half |
 | Confirm | **yes** | yes, y, yep, yeah, ok, sure, correct, right, good, looks good, all correct, 👍 ✅ |
 | Confirm | **no** | no, n, nope, nah, wrong, incorrect, cancel, stop, 👎 ❌, or any negation ("not correct", "don't save") |
+| Confirm | **the whole menu** | menu, the whole menu, entire menu, view the entire menu, show me the menu, show all, see everything, the rest |
 | Confirm | **a fix** | anything with a number in it, or one of: should, change, rename, remove, delete, add, called, except, but, instead, actually, size, spelled, price, oz |
 
-A reply that matches both sides, or neither, is unclear, and JOLO asks again.
+A reply that matches both yes and no, or neither, is unclear, and JOLO asks again. Asking to see the whole menu only lists the items: a yes, a no, or a fix in the same text still wins, so "yes, all correct" saves and "the cortado is 4.50" is a fix.
 
 A fix wins over yes and no: "no, the cortado is 4.50" and "yes, but not the croissant" are both sent to the agent as corrections, so a fix is never saved or thrown away by accident. Nothing is saved until the owner answers the updated summary with a plain yes.
 
@@ -74,6 +77,24 @@ Owners often send a menu in parts. Until the update is saved or cancelled, every
 ## 3. Customer asks about a menu (steps 22–27)
 
 The customer's text goes to the agent unchanged, and the agent's `say` text comes back unchanged, for example: "Cortado $4.75, Latte $3.50… (updated today)". The bridge adds nothing, so every price comes from Firestore.
+
+### Reviews
+
+When the agent's answer includes `cafe_interest` (the customer asked about a café, or the top café from a search), the bridge plans one question about that café for later: `REVIEW_PROMPT_DELAY_MS` after the message, two hours by default. A café looked at later replaces one not asked about yet. A customer is asked about each café once, and only one review is open at a time. Owners are never asked. If the bridge restarts before the timer fires, the question goes out right after the customer's next message.
+
+| Step | JOLO says |
+|---|---|
+| The time is up | Let us know if you went to Barbara's, and want to leave a review. Reply "yes" or "no". |
+| Yes | How would you rate Barbara's from 1 to 5? |
+| Unclear rating (once) | Reply with a number from 1 to 5, like "4". |
+| A rating | Thanks! What did you think? Reply "skip" to leave just the rating. |
+| A comment, or "skip" | Thanks! Your review of Barbara's is on the Social tab in the JOLO app. |
+| No, or "cancel" during the rating | No problem. Enjoy your coffee ☕ |
+| The save failed | I couldn't save your review just now. Send your comment again in a minute. |
+
+Accepted answers: yes is the confirm yes list plus "went", "been", "did", "loved"; a rating is 1–5 as a digit, a word, "4/5", "4 out of 5", "4 stars" or ⭐⭐⭐⭐. A rating sent with the yes ("yes, 5") skips the rating question, and words sent with the rating ("5, perfect oat latte") are the comment. A reply that isn't an answer to "did you go?" (a new question), or a second unclear rating, drops the review and goes to the agent as a normal message.
+
+The review is saved to Firestore `reviews/{id}` with `source: "imessage"`. It names the app account signed in with this phone number, or "iMessage guest"; the phone number itself is never stored.
 
 ## 4. When things go wrong
 

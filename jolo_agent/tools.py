@@ -12,6 +12,7 @@ The model gets small sets, chosen by who is texting:
                also set_scope, rename_size, keep_item, show_more, confirm_update, cancel_update
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -26,6 +27,7 @@ from jolo_agent.store.models import DAYS, hash_handle
 
 EDIT_TOOLS = {"set_price", "rename_item", "rename_size", "add_item", "remove_item", "keep_item"}
 MENU_LIMIT = 40
+log = logging.getLogger("jolo.tools")
 
 
 @dataclass
@@ -38,6 +40,28 @@ class Context:
     phone_hash: str
     cafe: Any = None        # the owner's café, or None for a customer
     model: Any = None       # for the insights summary
+    phone: str | None = None  # the raw handle, so the app can match this person
+    focus: Any = None       # {"cafe_id", "name"}: the café this customer looked at most closely this turn
+    focus_strong: bool = False  # True once they asked about one café by name (menu, hours, distance, pick)
+
+
+def note_focus(ctx, cafe_id, name, strong=True):
+    """The café to ask a review about later. A café they asked about wins over the top search result."""
+    if not cafe_id or not name:
+        return
+    if strong or (not ctx.focus_strong and ctx.focus is None):
+        ctx.focus = {"cafe_id": cafe_id, "name": name}
+        ctx.focus_strong = ctx.focus_strong or strong
+
+
+def remember_cafes(ctx, text, cafe_ids):
+    """History on For you. Owners are skipped. A failed write never blocks the reply."""
+    if ctx.cafe is not None or not ctx.phone:
+        return
+    try:
+        ctx.store.record_customer_ask(ctx.phone, text, cafe_ids, history_only=True)
+    except Exception:
+        log.exception("Could not save the iMessage café for the app")
 
 
 def find_cafe_by_phone(store, phone):
@@ -90,8 +114,12 @@ def customer_tools(ctx):
         return {"error": f'No café matches "{cafe_id}". Use a cafe_id from search_cafes.'}
 
     def search_cafes(query: str, near: str | None = None, open_now: bool = False, max_miles: float | None = None):
-        return ctx.search.search(query, near=near, open_now=open_now, max_miles=max_miles,
-                                 phone_hash=ctx.phone_hash)
+        found = ctx.search.search(query, near=near, open_now=open_now, max_miles=max_miles,
+                                  phone_hash=ctx.phone_hash, phone=ctx.phone)
+        top = (found.get("results") or [None])[0] if isinstance(found, dict) else None
+        if top:
+            note_focus(ctx, top.get("cafe_id"), top.get("name"), strong=False)
+        return found
 
     def get_menu(cafe_id: str, contains: str | None = None):
         cafe = resolve_cafe(store, cafe_id)
@@ -102,6 +130,8 @@ def customer_tools(ctx):
             return {"cafe_id": cafe.cafe_id, "name": cafe.name, "items": [], "note": "This café has no menu on JOLO yet."}
         items = _matching(version.items, contains)
         store.add_event("menu_view", cafe.cafe_id, ctx.phone_hash, {"contains": contains})
+        remember_cafes(ctx, contains or cafe.name, [cafe.cafe_id])
+        note_focus(ctx, cafe.cafe_id, cafe.name)
         out = {"cafe_id": cafe.cafe_id, "name": cafe.name, "menu_updated": version.created_at[:10],
                "items": [_listed(item, version.sold_out) for item in items[:MENU_LIMIT]]}
         if version.sold_out:
@@ -120,6 +150,8 @@ def customer_tools(ctx):
             return {"cafe_id": cafe.cafe_id, "name": cafe.name, "note": "No opening hours are stored for this café.",
                     "printed_on_menu": cafe.hours_text}
         now = local_now(timezone)
+        remember_cafes(ctx, cafe.name, [cafe.cafe_id])
+        note_focus(ctx, cafe.cafe_id, cafe.name)
         return {"cafe_id": cafe.cafe_id, "name": cafe.name, "today": DAYS[now.weekday()],
                 "open_now": is_open(cafe.hours, now),
                 "hours": {day: describe_day(cafe.hours.get(day)) for day in DAYS}}
@@ -133,6 +165,8 @@ def customer_tools(ctx):
             return {"error": f'I don\'t know where "{origin}" is. Ask the customer for a landmark or a street corner.'}
         if cafe.lat is None or cafe.lng is None:
             return {"error": f"No location is stored for {cafe.name}."}
+        remember_cafes(ctx, cafe.name, [cafe.cafe_id])
+        note_focus(ctx, cafe.cafe_id, cafe.name)
         return {"from": origin, "cafe": cafe.name, "address": cafe.address,
                 "miles": round(miles_between(start, (cafe.lat, cafe.lng)), 1)}
 
@@ -144,6 +178,8 @@ def customer_tools(ctx):
         last = searches[-1].data if searches else {}
         store.add_event("pick", cafe.cafe_id, ctx.phone_hash,
                         {"query": last.get("query"), "shown": last.get("shown", [])})
+        remember_cafes(ctx, cafe.name, [cafe.cafe_id])
+        note_focus(ctx, cafe.cafe_id, cafe.name)
         return {"recorded": cafe.name}
 
     return [

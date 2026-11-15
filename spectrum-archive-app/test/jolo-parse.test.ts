@@ -5,8 +5,16 @@ import { test } from "node:test";
 
 import { parseActions } from "../src/jolo/agent-client.ts";
 import { imageType, sniffImage } from "../src/jolo/content.ts";
-import { confirmSummary, formatPrice, formatPrices } from "../src/jolo/copy.ts";
-import { parseConfirm, parseConfirmReply, parseName, parseOwnerProfile, parseRole, parseScope } from "../src/jolo/parse.ts";
+import { confirmSummary, entireMenu, formatPrice, formatPrices } from "../src/jolo/copy.ts";
+import {
+  parseConfirm,
+  parseConfirmReply,
+  parseName,
+  parseOwnerProfile,
+  parseRole,
+  parseScope,
+  wantsEntireMenu,
+} from "../src/jolo/parse.ts";
 
 test("scope answers", () => {
   for (const text of ["Just part of it", "partial", "only the drinks", "some of it", "half"]) {
@@ -91,7 +99,39 @@ test("summary headline matches the sequence diagram", () => {
     price_changes: [],
     removed: [],
   });
-  assert.match(many!, /…and 3 more/);
+  assert.match(many!, /…and 3 more\. Reply "menu" to see the whole menu\./);
+  assert.doesNotMatch(summary!, /see the whole menu/);
+});
+
+test("the owner can ask to see every item the summary left off", () => {
+  for (const text of [
+    "menu",
+    "the whole menu",
+    "view the entire menu",
+    "show me the menu",
+    "can you show me the entire menu",
+    "I want to see the whole menu",
+    "show all",
+    "see everything",
+    "the rest",
+  ]) {
+    assert.equal(wantsEntireMenu(text), true, text);
+  }
+  for (const text of ["yes", "Yes, all correct", "no", "the cortado is 4.50", "maybe?", "rename matcha", "full", ""]) {
+    assert.equal(wantsEntireMenu(text), false, text);
+  }
+
+  const changes = {
+    added: Array.from({ length: 8 }, (_, i) => ({ item: `Drink ${i}`, prices: [{ usd: i + 1 }] })),
+    price_changes: [],
+    removed: ["Croissant"],
+  };
+  const full = entireMenu(changes);
+  assert.match(full, /^Here's the whole menu:/);
+  assert.match(full, /\+ Drink 7 \$8\.00/);
+  assert.match(full, /– Croissant \(removed\)/);
+  assert.doesNotMatch(full, /…and /);
+  assert.match(full, /Reply "yes" to save or "no" to cancel/);
 });
 
 test("a first menu asks about the least confident item; sizes are shown", () => {

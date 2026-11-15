@@ -11,6 +11,7 @@ import { archiver } from "../src/archive/writer.ts";
 import { type AgentClient, httpAgent } from "../src/jolo/agent-client.ts";
 import { joloState } from "../src/jolo/conversation.ts";
 import { createStubAgent } from "../src/jolo/stub-agent.ts";
+import type { NewReview } from "../src/jolo/reviews.ts";
 import type { TurnRequest } from "../src/jolo/types.ts";
 import { respond } from "../src/respond.ts";
 import { fakeMessage, fakeSpace } from "./fakes.ts";
@@ -42,10 +43,13 @@ after(() => {
 });
 
 let n = 0;
-function chat(handle: string, via: AgentClient = agent) {
+function chat(handle: string, via: AgentClient = agent, reviewDelayMs?: number) {
   n += 1;
   const { space, sent } = fakeSpace(`chat-${n}`, "imessage");
   const linked: { phone: string; name: string; businessName: string; location: string }[] = [];
+  const asks: { phone: string; text: string }[] = [];
+  const reviews: NewReview[] = [];
+  let failReview = false;
   const send = async (content: Record<string, unknown>) => {
     const before = sent.length;
     await respond(space, fakeMessage(space, { content, senderId: handle }), "stream", {
@@ -53,6 +57,14 @@ function chat(handle: string, via: AgentClient = agent) {
       linkOwner: async (profile) => {
         linked.push(profile);
       },
+      recordAsk: async (phone, text) => {
+        asks.push({ phone, text });
+      },
+      saveReview: async (review) => {
+        if (failReview) throw new Error("firestore down");
+        reviews.push(review);
+      },
+      ...(reviewDelayMs !== undefined ? { reviewDelayMs } : {}),
     });
     return sent.slice(before);
   };
@@ -60,6 +72,11 @@ function chat(handle: string, via: AgentClient = agent) {
     space,
     sent,
     linked,
+    asks,
+    reviews,
+    failNextReview: (fail = true) => {
+      failReview = fail;
+    },
     text: (text: string) => send({ type: "text", text }),
     photo: (caption?: string, name?: string) =>
       send(
@@ -163,6 +180,9 @@ test("a user's later texts go to the agent as a customer", async () => {
   assert.equal(last.conversation_id, c.space.id);
   assert.equal(last.sender.role, "customer");
   assert.equal(last.sender.handle, "+12015550001");
+  assert.deepEqual(c.asks, [
+    { phone: "+12015550001", text: "what's on the menu at Barbara's?" },
+  ]);
 });
 
 test("a photo sent before choosing user isn't asked for again", async () => {
@@ -220,6 +240,29 @@ test("agent down: friendly error, and the pending question survives", async () =
   const [reply] = await c.text("part");
   assert.deepEqual(requests.at(-1)!.event, { type: "scope", scope: "partial" });
   assert.notEqual(reply, "I couldn't reach the menu service just now. Please try again in a minute.");
+});
+
+test("a long menu offers the rest, and asking for it doesn't save or call the agent", async () => {
+  const via = await startStub();
+  const c = chat(OWNER, via);
+  await onboard(c, "Barbara", "owner");
+  await c.photo(undefined, "long-menu.jpg");
+  const [summary] = await c.text("part");
+  assert.match(summary!, /…and \d+ more\. Reply "menu" to see the whole menu\./);
+  assert.doesNotMatch(summary!, /Extra 7/);
+
+  const before = requests.length;
+  const [full] = await c.text("view the entire menu");
+  assert.equal(requests.length, before, "seeing the menu is answered here");
+  assert.match(full!, /^Here's the whole menu:/);
+  assert.match(full!, /\+ Extra 7 /);
+  assert.match(full!, /\+ Oat Latte /);
+  assert.doesNotMatch(full!, /…and /);
+  assert.match(full!, /Reply "yes" to save or "no" to cancel/);
+  assert.equal(joloState(c.space.id).pending, "confirm");
+
+  assert.deepEqual(await c.text("no"), ["Okay, nothing changed. Send another photo whenever you're ready."]);
+  assert.equal(joloState(c.space.id).pendingChanges, undefined);
 });
 
 test("a correction to the summary goes to the agent and comes back as a new summary", async () => {
@@ -375,4 +418,90 @@ test("commands still work in JOLO mode, and every JOLO message is archived", asy
 
   await c.text("/reset");
   assert.deepEqual(joloState(c.space.id), {}, "/reset starts onboarding over");
+});
+
+// ---------- reviews ----------
+
+const PROMPT = 'Let us know if you went to Barbara\'s, and want to leave a review. Reply "yes" or "no".';
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test("a customer who looked at a café is asked for a review once the delay is up", async () => {
+  const c = chat("+12015550101", agent, 20);
+  await onboard(c, "Sam", "customer");
+  await c.text("what's on the menu at Barbara's?");
+  assert.equal(joloState(c.space.id).review?.stage, "scheduled");
+  await wait(80);
+  assert.equal(c.sent.at(-1), PROMPT);
+  assert.equal(joloState(c.space.id).review?.stage, "asked");
+
+  assert.deepEqual(await c.text("yes!"), ["How would you rate Barbara's from 1 to 5?"]);
+  assert.deepEqual(await c.text("hmm"), ['Reply with a number from 1 to 5, like "4".']);
+  assert.deepEqual(await c.text("4 stars"), ['Thanks! What did you think? Reply "skip" to leave just the rating.']);
+  assert.deepEqual(await c.text("Great cortado, a bit loud"), [
+    "Thanks! Your review of Barbara's is on the Social tab in the JOLO app.",
+  ]);
+  assert.deepEqual(c.reviews, [
+    { phone: "+12015550101", cafeId: "barbaras", cafeName: "Barbara's", rating: 4, comment: "Great cortado, a bit loud" },
+  ]);
+  assert.equal(joloState(c.space.id).review, undefined);
+
+  // The same café is never asked about twice.
+  await c.text("what's on the menu at Barbara's?");
+  assert.equal(joloState(c.space.id).review, undefined);
+});
+
+test("a missed timer asks after the customer's next message, and a rating can carry the comment", async () => {
+  const c = chat("+12015550102", agent, 0);
+  await onboard(c, "Sam", "customer");
+  const state = joloState(c.space.id);
+  // Planned as if the bridge had restarted: due, with no timer running.
+  state.review = { cafeId: "barbaras", cafeName: "Barbara's", stage: "scheduled", dueAt: new Date(0).toISOString() };
+  const replies = await c.text("hi there");
+  assert.equal(replies.at(-1), PROMPT);
+  assert.deepEqual(await c.text("yes, 5 - perfect oat latte"), [
+    "Thanks! Your review of Barbara's is on the Social tab in the JOLO app.",
+  ]);
+  assert.equal(c.reviews[0]?.rating, 5);
+  assert.equal(c.reviews[0]?.comment, "perfect oat latte");
+});
+
+test("no ends the review, skip saves only the rating, and a failed save keeps the answer", async () => {
+  const c = chat("+12015550103", agent, 0);
+  await onboard(c, "Sam", "customer");
+  const state = joloState(c.space.id);
+  const due = () =>
+    (state.review = { cafeId: "barbaras", cafeName: "Barbara's", stage: "asked", dueAt: new Date(0).toISOString() });
+
+  due();
+  assert.deepEqual(await c.text("no, didn't make it"), ["No problem. Enjoy your coffee ☕"]);
+  assert.equal(c.reviews.length, 0);
+
+  due();
+  await c.text("yes");
+  await c.text("3");
+  c.failNextReview();
+  assert.deepEqual(await c.text("skip"), [
+    "I couldn't save your review just now. Send your comment again in a minute.",
+  ]);
+  c.failNextReview(false);
+  await c.text("skip");
+  assert.deepEqual(c.reviews, [{ phone: "+12015550103", cafeId: "barbaras", cafeName: "Barbara's", rating: 3, comment: "" }]);
+});
+
+test("an unrelated message during the question goes to the agent instead", async () => {
+  const c = chat("+12015550104", agent, 0);
+  await onboard(c, "Sam", "customer");
+  const state = joloState(c.space.id);
+  state.review = { cafeId: "barbaras", cafeName: "Barbara's", stage: "asked", dueAt: new Date(0).toISOString() };
+  const before = requests.length;
+  await c.text("where can I get matcha?");
+  assert.equal(requests.length, before + 1);
+  assert.equal(state.review, undefined);
+});
+
+test("owners are never asked for reviews", async () => {
+  const c = chat(OWNER, agent, 0);
+  await onboard(c, "Barbara", "owner");
+  await c.text("what's on the menu at Barbara's?");
+  assert.equal(joloState(c.space.id).review, undefined);
 });

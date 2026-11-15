@@ -266,6 +266,24 @@ def test_a_customer_message_is_answered_with_say(tmp_path):
     assert found == [{"type": "say", "text": "Barbara's and Curiosity are both close by."}]
 
 
+def test_a_customer_who_asks_about_a_cafe_gets_cafe_interest(tmp_path):
+    model = FakeModel([("get_menu", {"cafe_id": "Barbara's"})], "Barbara's has a cortado for $4.50.")
+    client, _brain = turn_client(tmp_path, model=model)
+    found = actions(client, CUSTOMER, {"type": "message", "text": "what's on the menu at barbara's?", "photos": []},
+                    role="customer")
+    assert types(found) == ["say", "cafe_interest"]
+    assert found[1] == {"type": "cafe_interest", "cafe_id": "barbaras", "cafe_name": "Barbara's"}
+
+
+def test_a_cafe_asked_about_wins_over_the_top_search_result(tmp_path):
+    model = FakeModel([("search_cafes", {"query": "matcha"})], [("get_hours", {"cafe_id": "Barbara's"})],
+                      "Barbara's is open until 6pm.")
+    client, _brain = turn_client(tmp_path, model=model)
+    found = actions(client, CUSTOMER, {"type": "message", "text": "matcha near me, is barbara's open?", "photos": []},
+                    role="customer")
+    assert found[-1]["cafe_id"] == "barbaras"
+
+
 def test_an_owner_message_without_photos_goes_to_the_brain(tmp_path):
     model = FakeModel([("set_price", {"item": "Cortado", "usd": 4.75})])
     client, brain = turn_client(tmp_path, model=model)

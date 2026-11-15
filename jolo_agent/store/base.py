@@ -169,6 +169,15 @@ class Store(ABC):
         docs = self._find("corrections", "cafe_id", cafe_id) if cafe_id else self._list("corrections")
         return sorted((Correction.model_validate(doc) for doc in docs), key=lambda c: c.created_at)
 
+    def record_customer_ask(self, phone, text, cafe_ids=None, history_only=False):
+        """A customer's iMessage, for the app's For you and History.
+
+        The memory store keeps nothing. Firestore writes it where that phone's
+        signed-in user can read it. history_only marks the cafés from a search,
+        not the words the person typed (the bridge stores those).
+        """
+        return None
+
     def add_event(self, kind, cafe_id=None, phone_hash=None, data=None, created_at=None):
         event = Event(id=uuid.uuid4().hex, kind=kind, cafe_id=cafe_id, phone_hash=phone_hash, data=data or {})
         if created_at:

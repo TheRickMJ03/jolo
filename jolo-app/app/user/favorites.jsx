@@ -1,127 +1,51 @@
-import { useEffect, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { Palette } from "@/constants/Colors";
 import { Radius, Spacing, Typography } from "@/constants/Typography";
+import { useCafes } from "@/hooks/useCafes";
+import { useUserActivity } from "@/hooks/useUserActivity";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import { useAuth } from "@/lib/auth";
+import { distanceMiles, formatDistance, isInServiceArea } from "@/lib/geo";
+import { relativeDay } from "@/lib/insights";
+import { recentCafes, recentRequests } from "@/lib/user-activity";
 
-const CREATIONS = [
-  { id: "iced-oat-vanilla", name: "Iced Oat Vanilla Latte", tag: "Iced · Oat Milk" },
-  { id: "extra-shot-cap", name: "Extra Shot Cappuccino", tag: "3 Shots · Whole Milk" },
-  { id: "iced-matcha-oat", name: "Iced Matcha Oat Latte", tag: "Iced · Light Ice" },
-];
-
-const SPOTS = [
-  {
-    id: "aroma",
-    name: "Aroma & Crema - Downtown",
-    rating: "4.9",
-    distance: "0.4 miles",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAH3CB90ARsiAW8KBRej2HYd2Nh-LNRF2Nihf5Y8JL9nlAkbEg_AuDL6gG9lYAi439GqliiRMyPIPCa0aX12dgKn4i7ZOEwW1toeYIe31Kd5ZavDxxWwYGCaQe0kdufU2VJRNH2VxabtqlhlK5GQRBIvP8dBNTEU_IsBDfvJh65jKh1LiwEXjBHKkxi5Jjec22NogIqqHTRKfVOtm9J0dyT2Kc-NvUc2w7aQ2tnkpAkVVh9j8zu-u9T_gKz6_vB1CjxP3NSg85yvOQ",
-  },
-  {
-    id: "bean",
-    name: "Bean & Leaf - Westside",
-    rating: "4.7",
-    distance: "1.2 miles",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDkLmP71pBZPPbPDZ7Gr7pPTdEMP9UFF5Lj_jt1VCGBfg42ljIW-BZxmgY-DNsLvULfhiP0sFici97Lk1rSwZ0cd6mqScxHPyEUIl2FRe8Uy3mZy0LGphdgPIJnp3qjXkby7m79F8oW5rV25hQvKUBpIBrqAMFzaKq7j3FPfN0_YhEVqn2eKtzFjK3KHnu8fMhtIAAcDX5cKLGN1vn66kxBGOo-JQkZLWaZ_ywgsQ-q50ASIWKAubyslXffiAA_86O5kiBa53e-WZc",
-  },
-  {
-    id: "roastery",
-    name: "The Roastery Lab",
-    rating: "4.8",
-    distance: "2.1 miles",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAnr5cxvOxU61XNamNND_KWjJt-EePhiSZjwmRYRmYpmfH7UcioekNPv39g_pmoOHW4eeqEQz57_QnXA_Uz1fPK-g3OtrKzdrkMiSVF02PlglTEP3ZHzQk8CuRBHoHs_nuHwipD5NP5UaJavtJl6PbEFW4NwHjlhGznNpj_eK4YsGqr1Pu5sBLbxNPJJSVbSmWQzBzQVcWeUlaaq3QXYKbwHjapVd1fuFpGidWALw_7I5NRNyuQe1BSf6oTXK-f8aAkBSEwu6RclPc",
-  },
-];
-
-const COMMUNITY_CREATIONS = [
-  { id: "brown-sugar-shaken", name: "Brown Sugar Oat Shaken Espresso", author: "Marcus T." },
-  { id: "honey-cinnamon-cortado", name: "Honey Cinnamon Cortado", author: "Priya S." },
-  { id: "salted-caramel-foam", name: "Salted Caramel Cold Foam Latte", author: "Elena R." },
-];
-
-const COMMUNITY_SPOTS = [
-  {
-    id: "corner-press",
-    name: "Corner Press Coffee",
-    rating: "4.6",
-    distance: "1.8 miles",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAH3CB90ARsiAW8KBRej2HYd2Nh-LNRF2Nihf5Y8JL9nlAkbEg_AuDL6gG9lYAi439GqliiRMyPIPCa0aX12dgKn4i7ZOEwW1toeYIe31Kd5ZavDxxWwYGCaQe0kdufU2VJRNH2VxabtqlhlK5GQRBIvP8dBNTEU_IsBDfvJh65jKh1LiwEXjBHKkxi5Jjec22NogIqqHTRKfVOtm9J0dyT2Kc-NvUc2w7aQ2tnkpAkVVh9j8zu-u9T_gKz6_vB1CjxP3NSg85yvOQ",
-  },
-  {
-    id: "maple-grind",
-    name: "Maple & Grind",
-    rating: "4.5",
-    distance: "2.4 miles",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDkLmP71pBZPPbPDZ7Gr7pPTdEMP9UFF5Lj_jt1VCGBfg42ljIW-BZxmgY-DNsLvULfhiP0sFici97Lk1rSwZ0cd6mqScxHPyEUIl2FRe8Uy3mZy0LGphdgPIJnp3qjXkby7m79F8oW5rV25hQvKUBpIBrqAMFzaKq7j3FPfN0_YhEVqn2eKtzFjK3KHnu8fMhtIAAcDX5cKLGN1vn66kxBGOo-JQkZLWaZ_ywgsQ-q50ASIWKAubyslXffiAA_86O5kiBa53e-WZc",
-  },
-  {
-    id: "milk-bar",
-    name: "The Milk Bar Café",
-    rating: "4.7",
-    distance: "3.0 miles",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAnr5cxvOxU61XNamNND_KWjJt-EePhiSZjwmRYRmYpmfH7UcioekNPv39g_pmoOHW4eeqEQz57_QnXA_Uz1fPK-g3OtrKzdrkMiSVF02PlglTEP3ZHzQk8CuRBHoHs_nuHwipD5NP5UaJavtJl6PbEFW4NwHjlhGznNpj_eK4YsGqr1Pu5sBLbxNPJJSVbSmWQzBzQVcWeUlaaq3QXYKbwHjapVd1fuFpGidWALw_7I5NRNyuQe1BSf6oTXK-f8aAkBSEwu6RclPc",
-  },
+// Sample drink trends from recommend/job.py DEMO_TRENDS, after extract_drinks.
+// Bare words the extractor also keeps ("Latte", "Matcha") are left off; the
+// longer names already cover them.
+const DRINK_TRENDS = [
+  { id: "brown-sugar-oat-latte", name: "Brown sugar oat latte", momentum: "Rising" },
+  { id: "lavender-oat-latte", name: "Lavender oat latte", momentum: "Rising" },
+  { id: "lavender-latte", name: "Lavender latte", momentum: "Rising" },
+  { id: "oat-cortado", name: "Oat cortado", momentum: "Steady" },
+  { id: "iced-matcha", name: "Iced matcha", momentum: "Steady" },
+  { id: "cold-brew", name: "Cold brew", momentum: "Steady" },
 ];
 
 export default function FavoritesView() {
+  const { user } = useAuth();
+  const activity = useUserActivity(user);
+  const { cafes } = useCafes();
+  const { coords } = useUserLocation();
   const [notifOpen, setNotifOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("creations");
-  const [removedCreations, setRemovedCreations] = useState([]);
-  const [removedSpots, setRemovedSpots] = useState([]);
-  const [savedCommunityCreations, setSavedCommunityCreations] = useState([]);
-  const [savedCommunitySpots, setSavedCommunitySpots] = useState([]);
-  const [toast, setToast] = useState(null);
-  const toastTimer = useRef(null);
+  const [activeTab, setActiveTab] = useState("recommendations");
+  const [savedTrends, setSavedTrends] = useState([]);
 
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
+  const nearby = coords != null && isInServiceArea(coords);
+  const requests = useMemo(() => recentRequests(activity.events), [activity.events]);
+  const history = useMemo(() => {
+    return recentCafes(activity.events, cafes).map((cafe) => ({
+      ...cafe,
+      miles: nearby && cafe.coordinate ? distanceMiles(coords, cafe.coordinate) : null,
+    }));
+  }, [activity.events, cafes, nearby, coords]);
 
-  const showToast = (text, onUndo) => {
-    clearTimeout(toastTimer.current);
-    setToast({ text, onUndo });
-    toastTimer.current = setTimeout(() => setToast(null), 3500);
-  };
-  const dismissToast = () => {
-    clearTimeout(toastTimer.current);
-    setToast(null);
-  };
-
-  const visibleCreations = CREATIONS.filter((c) => !removedCreations.includes(c.id));
-  const visibleSpots = SPOTS.filter((c) => !removedSpots.includes(c.id));
-
-  const removeCreation = (item) => {
-    setRemovedCreations((prev) => [...prev, item.id]);
-    showToast(`Removed "${item.name}" from favorites`, () =>
-      setRemovedCreations((prev) => prev.filter((id) => id !== item.id)),
-    );
-  };
-  const removeSpot = (item) => {
-    setRemovedSpots((prev) => [...prev, item.id]);
-    showToast(`Removed "${item.name}" from favorites`, () =>
-      setRemovedSpots((prev) => prev.filter((id) => id !== item.id)),
-    );
-  };
-  const toggleCommunityCreation = (item) => {
-    const saved = savedCommunityCreations.includes(item.id);
-    setSavedCommunityCreations((prev) =>
-      saved ? prev.filter((id) => id !== item.id) : [...prev, item.id],
-    );
-    dismissToast();
-  };
-  const toggleCommunitySpot = (item) => {
-    const saved = savedCommunitySpots.includes(item.id);
-    setSavedCommunitySpots((prev) =>
-      saved ? prev.filter((id) => id !== item.id) : [...prev, item.id],
-    );
-    dismissToast();
+  const toggleTrend = (item) => {
+    const saved = savedTrends.includes(item.id);
+    setSavedTrends((prev) => (saved ? prev.filter((id) => id !== item.id) : [...prev, item.id]));
   };
 
   return (
@@ -131,7 +55,7 @@ export default function FavoritesView() {
           <View style={styles.avatar}>
             <Ionicons name="person" size={20} color={Palette.primary} />
           </View>
-          <Text style={styles.headerTitle}>Favorites</Text>
+          <Text style={styles.headerTitle}>For you</Text>
           <Pressable
             style={({ pressed }) => [styles.bellBtn, pressed && styles.pressed]}
             onPress={() => setNotifOpen((v) => !v)}
@@ -147,71 +71,81 @@ export default function FavoritesView() {
         />
 
         <View style={styles.segTabs}>
-          <Pressable onPress={() => setActiveTab("creations")}>
-            <Text style={[styles.segTab, activeTab === "creations" && styles.segTabActive]}>
-              Creations
+          <Pressable onPress={() => setActiveTab("recommendations")}>
+            <Text style={[styles.segTab, activeTab === "recommendations" && styles.segTabActive]}>
+              Recommendations
             </Text>
           </Pressable>
-          <Pressable onPress={() => setActiveTab("cafes")}>
-            <Text style={[styles.segTab, activeTab === "cafes" && styles.segTabActive]}>Cafés</Text>
+          <Pressable onPress={() => setActiveTab("history")}>
+            <Text style={[styles.segTab, activeTab === "history" && styles.segTabActive]}>
+              History
+            </Text>
           </Pressable>
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {activeTab === "creations" ? (
+        {activeTab === "recommendations" ? (
           <>
             <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Your Creations</Text>
-              <Text style={styles.seeAll}>See all {visibleCreations.length}</Text>
+              <Text style={styles.sectionTitle}>What you like</Text>
+              {requests.length > 0 ? (
+                <Text style={styles.seeAll}>See all {requests.length}</Text>
+              ) : null}
             </View>
-            {visibleCreations.length > 0 ? (
+            {activity.loading ? (
+              <ActivityIndicator
+                color={Palette.primary}
+                accessibilityLabel="Loading your requests"
+              />
+            ) : activity.error ? (
+              <EmptyRow
+                icon="cloud-offline-outline"
+                text="Couldn't load your requests. Check your connection."
+              />
+            ) : requests.length > 0 ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.circleRow}
               >
-                {visibleCreations.map((item) => (
+                {requests.map((item) => (
                   <View key={item.id} style={styles.circleCard}>
                     <View style={styles.circleThumb}>
                       <Ionicons name="cafe" size={38} color={Palette.primary} />
-                      <Pressable style={styles.circleHeart} onPress={() => removeCreation(item)}>
-                        <Ionicons name="heart" size={14} color={Palette.error} />
-                      </Pressable>
                     </View>
                     <Text style={styles.circleName} numberOfLines={2}>
-                      {item.name}
+                      {item.text}
                     </Text>
-                    <Text style={styles.circleSub}>{item.tag}</Text>
+                    <Text style={styles.circleSub}>
+                      {item.createdAt ? `Asked ${relativeDay(item.createdAt)}` : "Recent search"}
+                    </Text>
                   </View>
                 ))}
               </ScrollView>
             ) : (
               <EmptyRow
-                icon="heart"
-                text="No favorited creations yet. Heart a drink from Social to save it here."
+                icon="search-outline"
+                text='Search in Finder, or ask JOLO over iMessage, and it will show up here.'
               />
             )}
 
             <View style={[styles.sectionHead, styles.sectionHeadSecond]}>
-              <Text style={styles.sectionTitle}>Community Creations</Text>
-              <Text style={styles.seeAll}>See all {COMMUNITY_CREATIONS.length}</Text>
+              <Text style={styles.sectionTitle}>Trending now</Text>
+              <Text style={styles.seeAll}>See all {DRINK_TRENDS.length}</Text>
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.circleRow}
             >
-              {COMMUNITY_CREATIONS.map((item) => {
-                const saved = savedCommunityCreations.includes(item.id);
+              {DRINK_TRENDS.map((item) => {
+                const saved = savedTrends.includes(item.id);
                 return (
                   <View key={item.id} style={styles.circleCard}>
                     <View style={styles.circleThumb}>
                       <Ionicons name="cafe" size={38} color={Palette.primary} />
-                      <Pressable
-                        style={styles.circleHeart}
-                        onPress={() => toggleCommunityCreation(item)}
-                      >
+                      <Pressable style={styles.circleHeart} onPress={() => toggleTrend(item)}>
                         <Ionicons
                           name={saved ? "heart" : "heart-outline"}
                           size={14}
@@ -222,7 +156,7 @@ export default function FavoritesView() {
                     <Text style={styles.circleName} numberOfLines={2}>
                       {item.name}
                     </Text>
-                    <Text style={styles.circleSub}>by {item.author}</Text>
+                    <Text style={styles.circleSub}>{item.momentum}</Text>
                   </View>
                 );
               })}
@@ -231,22 +165,31 @@ export default function FavoritesView() {
         ) : (
           <>
             <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Your Cafés</Text>
-              <Text style={styles.seeAll}>See all {visibleSpots.length}</Text>
+              <Text style={styles.sectionTitle}>Recent cafés</Text>
+              {history.length > 0 ? (
+                <Text style={styles.seeAll}>See all {history.length}</Text>
+              ) : null}
             </View>
-            {visibleSpots.length > 0 ? (
+            {activity.loading ? (
+              <ActivityIndicator
+                color={Palette.primary}
+                accessibilityLabel="Loading café history"
+              />
+            ) : activity.error ? (
+              <EmptyRow
+                icon="cloud-offline-outline"
+                text="Couldn't load your café history. Check your connection."
+              />
+            ) : history.length > 0 ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.circleRow}
               >
-                {visibleSpots.map((item) => (
+                {history.map((item) => (
                   <View key={item.id} style={styles.circleCard}>
                     <View style={styles.circleThumb}>
-                      <Image source={{ uri: item.image }} style={styles.circleImage} />
-                      <Pressable style={styles.circleHeart} onPress={() => removeSpot(item)}>
-                        <Ionicons name="heart" size={14} color={Palette.error} />
-                      </Pressable>
+                      <Ionicons name="cafe" size={38} color={Palette.primary} />
                     </View>
                     <Text style={styles.circleName} numberOfLines={2}>
                       {item.name}
@@ -254,7 +197,8 @@ export default function FavoritesView() {
                     <View style={styles.circleSubRow}>
                       <Ionicons name="star" size={11} color={Palette.secondary} />
                       <Text style={styles.circleSub}>
-                        {item.rating} · {item.distance}
+                        {item.rating != null ? item.rating.toFixed(1) : "No rating"}
+                        {item.miles != null ? ` · ${formatDistance(item.miles)}` : ""}
                       </Text>
                     </View>
                   </View>
@@ -262,70 +206,13 @@ export default function FavoritesView() {
               </ScrollView>
             ) : (
               <EmptyRow
-                icon="location"
-                text="No favorite spots yet. Heart a café on the Finder tab to save it here."
+                icon="location-outline"
+                text="Search for a café, open one on the map, or ask JOLO over iMessage, and it will show up here."
               />
             )}
-
-            <View style={[styles.sectionHead, styles.sectionHeadSecond]}>
-              <Text style={styles.sectionTitle}>Community Cafés</Text>
-              <Text style={styles.seeAll}>See all {COMMUNITY_SPOTS.length}</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.circleRow}
-            >
-              {COMMUNITY_SPOTS.map((item) => {
-                const saved = savedCommunitySpots.includes(item.id);
-                return (
-                  <View key={item.id} style={styles.circleCard}>
-                    <View style={styles.circleThumb}>
-                      <Image source={{ uri: item.image }} style={styles.circleImage} />
-                      <Pressable
-                        style={styles.circleHeart}
-                        onPress={() => toggleCommunitySpot(item)}
-                      >
-                        <Ionicons
-                          name={saved ? "heart" : "heart-outline"}
-                          size={14}
-                          color={saved ? Palette.error : Palette.onSurfaceVariant}
-                        />
-                      </Pressable>
-                    </View>
-                    <Text style={styles.circleName} numberOfLines={2}>
-                      {item.name}
-                    </Text>
-                    <View style={styles.circleSubRow}>
-                      <Ionicons name="star" size={11} color={Palette.secondary} />
-                      <Text style={styles.circleSub}>
-                        {item.rating} · {item.distance}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
           </>
         )}
       </ScrollView>
-
-      {toast && (
-        <View style={styles.toast}>
-          <Text style={styles.toastText} numberOfLines={2}>
-            {toast.text}
-          </Text>
-          <Pressable
-            onPress={() => {
-              toast.onUndo?.();
-              dismissToast();
-            }}
-            hitSlop={8}
-          >
-            <Text style={styles.toastUndo}>UNDO</Text>
-          </Pressable>
-        </View>
-      )}
     </View>
   );
 }
@@ -448,11 +335,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "visible",
   },
-  circleImage: {
-    width: 100,
-    height: 100,
-    borderRadius: Radius.full,
-  },
   circleHeart: {
     position: "absolute",
     bottom: -6,
@@ -512,35 +394,6 @@ const styles = StyleSheet.create({
     color: Palette.onSurfaceVariant,
     textAlign: "center",
     maxWidth: 240,
-  },
-
-  toast: {
-    position: "absolute",
-    left: Spacing.marginMain,
-    right: Spacing.marginMain,
-    bottom: 96,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-    backgroundColor: Palette.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: Radius.md,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
-  },
-  toastText: {
-    ...Typography.bodySm,
-    color: Palette.onPrimary,
-    flex: 1,
-  },
-  toastUndo: {
-    ...Typography.labelLg,
-    color: Palette.secondaryContainer,
   },
 
   pressed: {

@@ -91,26 +91,30 @@ export default function FinderView() {
       : visibleCafes;
   }, [visibleCafes, selectedId]);
 
-  const selectCafe = useCallback((cafe) => {
-    Keyboard.dismiss();
-    // iOS reports a marker tap to the map as well; ignore that follow-up press
-    // so it doesn't immediately clear the selection we just made.
-    markerPressRef.current = true;
-    setTimeout(() => {
-      markerPressRef.current = false;
-    }, 700);
+  const selectCafe = useCallback(
+    (cafe) => {
+      recordCafeVisit(user, cafe);
+      Keyboard.dismiss();
+      // iOS reports a marker tap to the map as well; ignore that follow-up press
+      // so it doesn't immediately clear the selection we just made.
+      markerPressRef.current = true;
+      setTimeout(() => {
+        markerPressRef.current = false;
+      }, 700);
 
-    setSelectedId(cafe.id);
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-    // Lift the sheet off the collapsed header, but never drag it back down.
-    sheetRef.current?.snapToIndex(Math.max(1, sheetIndexRef.current));
-    if (cafe.coordinate) {
-      mapRef.current?.animateToRegion(
-        { ...cafe.coordinate, latitudeDelta: 0.03, longitudeDelta: 0.03 },
-        350,
-      );
-    }
-  }, []);
+      setSelectedId(cafe.id);
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      // Lift the sheet off the collapsed header, but never drag it back down.
+      sheetRef.current?.snapToIndex(Math.max(1, sheetIndexRef.current));
+      if (cafe.coordinate) {
+        mapRef.current?.animateToRegion(
+          { ...cafe.coordinate, latitudeDelta: 0.03, longitudeDelta: 0.03 },
+          350,
+        );
+      }
+    },
+    [user],
+  );
 
   const handleCardPress = (cafe) => {
     if (cafe.id === selectedId) {
@@ -283,6 +287,15 @@ function recordSearch(user, text) {
   if (!user?.uid || trimmed.length < 3) return;
   writeEvent(user.uid, { type: "search", text: trimmed }).catch((error) =>
     console.warn(`[jolo] search not recorded: ${error?.message ?? error}`),
+  );
+}
+
+/** Opening a café on the map is the café that History keeps. */
+function recordCafeVisit(user, cafe) {
+  const name = String(cafe?.name ?? "").trim();
+  if (!user?.uid || !cafe?.id || !name) return;
+  writeEvent(user.uid, { type: "search", text: name, cafeId: cafe.id }).catch((error) =>
+    console.warn(`[jolo] café not recorded: ${error?.message ?? error}`),
   );
 }
 

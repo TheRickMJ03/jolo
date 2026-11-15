@@ -70,7 +70,24 @@ export type AgentAction =
   /** The reader returned readable: false for the photo itself. */
   | { type: "unreadable_photo"; reason?: string }
   /** The reader's model server didn't answer (reason "model_error: …"). */
-  | { type: "reader_down" };
+  | { type: "reader_down" }
+  /** A customer looked at this café; the bridge may ask for a review later. Says nothing itself. */
+  | { type: "cafe_interest"; cafe_id: string; cafe_name: string };
+
+/**
+ * The review question for one café (src/jolo/reviews.ts).
+ * scheduled → asked ("did you go?") → rating (1–5) → comment → saved.
+ */
+export interface ReviewFollowUp {
+  cafeId: string;
+  cafeName: string;
+  stage: "scheduled" | "asked" | "rating" | "comment";
+  /** When to ask, as an ISO time. */
+  dueAt: string;
+  rating?: number;
+  /** Unclear answers to the rating question so far. */
+  misses?: number;
+}
 
 /** Per-conversation state the bridge keeps (in the memory store, keyed by space id). */
 export interface OwnerProfile {
@@ -88,8 +105,14 @@ export interface JoloState {
   onboarding?: "role" | "details";
   /** Which owner question is waiting for an answer. */
   pending?: "scope" | "confirm";
+  /** The change list behind an open confirmation, so "menu" can show every item. */
+  pendingChanges?: MenuChanges;
   /** A menu update is open: more photos join it instead of starting a new one. */
   updating?: boolean;
   /** A photo arrived before onboarding finished; ask for it again afterwards. */
   heldPhoto?: boolean;
+  /** A customer's review question, planned or under way. */
+  review?: ReviewFollowUp;
+  /** Café ids this customer was already asked to review. */
+  reviewedCafes?: string[];
 }

@@ -51,10 +51,10 @@ export default function MainLayout() {
       <Tabs.Screen
         name="favorites"
         options={{
-          title: "Favorites",
+          title: "For you",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
-              name={focused ? "heart" : "heart-outline"}
+              name={focused ? "sparkles" : "sparkles-outline"}
               color={color}
               focused={focused}
             />

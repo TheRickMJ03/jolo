@@ -73,6 +73,7 @@ export default function OwnerLayout() {
         <Tabs.Screen name="index" options={tab("Menu", "restaurant")} />
         <Tabs.Screen name="history" options={tab("History", "time")} />
         <Tabs.Screen name="insights" options={tab("Insights", "stats-chart")} />
+        <Tabs.Screen name="reviews" options={tab("Reviews", "star")} />
         <Tabs.Screen name="account" options={tab("Account", "person")} />
       </Tabs>
     </OwnerCafeProvider>

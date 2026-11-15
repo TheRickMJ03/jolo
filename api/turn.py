@@ -3,7 +3,7 @@
 The bridge sends one structured event per message and words every reply itself;
 this adapter turns each event into a call on the brain and returns actions.
 
-    message  (customer, or owner without photos)  -> say
+    message  (customer, or owner without photos)  -> say (+ cafe_interest when a customer looked at a café)
     message  (owner, with photos)                 -> ask_scope at once; the read runs in the background
     scope    -> waits for the read, then          -> confirm_changes | unreadable_photo | reader_down
     correction -> applies the fix, then           -> (say) + confirm_changes
@@ -122,7 +122,12 @@ class TurnHandler:
     def _message(self, handle, text):
         """A customer's question, or an owner's words with no photo: the brain answers."""
         replies = [reply for reply in self.brain.handle_message(handle, text, []) if reply and reply.strip()]
-        return [say(reply) for reply in replies] or [say(messages.EMPTY_MESSAGE)]
+        found = [say(reply) for reply in replies] or [say(messages.EMPTY_MESSAGE)]
+        # The café this customer looked at, so the bridge can ask for a review later.
+        cafe = self.brain.last.get("cafe")
+        if cafe:
+            found.append({"type": "cafe_interest", "cafe_id": cafe["cafe_id"], "cafe_name": cafe["name"]})
+        return found
 
     def _photos(self, phone_hash, cafe, event):
         photos = self._decode(event.photos)

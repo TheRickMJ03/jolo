@@ -59,6 +59,12 @@ export function parseActions(body: unknown): AgentAction[] {
       case "unreadable_photo":
         actions.push({ type: "unreadable_photo", ...(typeof raw.reason === "string" ? { reason: raw.reason } : {}) });
         break;
+      case "cafe_interest":
+        // Only a hint for the review question: a malformed one is dropped, never an error.
+        if (typeof raw.cafe_id === "string" && raw.cafe_id && typeof raw.cafe_name === "string" && raw.cafe_name) {
+          actions.push({ type: "cafe_interest", cafe_id: raw.cafe_id, cafe_name: raw.cafe_name });
+        }
+        break;
       case "ask_scope":
       case "cancelled":
       case "not_owner":

@@ -107,6 +107,25 @@ The document ID is the Monday that starts the week (`"2026-11-09"`). Bhavesh's w
 
 Written by the recommend job (`python -m recommend.job --analytics`), never by a client. `analytics/current` is the owner's Insights signals (other shops, asks nearby, web trends) and only that café's owner can read it. `areas/{areaId}` holds drinks trending on local menus for the customer Social tab, readable by anyone signed in. `niches/{slug}` is the job's scrape cache. Shapes and sources: [`trends-and-insights.md`](trends-and-insights.md).
 
+### `reviews/{reviewId}`
+
+Customer reviews. The app's Social tab lists all of them, newest first and live; the owner's Reviews tab lists one café's (`where cafeId ==`, `orderBy createdAt desc`, the composite index in `jolo-app/firestore.indexes.json`).
+
+```jsonc
+{
+  "cafeId": "barbaras",
+  "cafeName": "Barbara's",        // copied so the feed needs no café read
+  "rating": 4,                    // int, 1–5
+  "comment": "Great cortado",     // up to 500 characters; "" when they skipped it
+  "authorUid": "abc123",          // null for an iMessage texter with no app account
+  "authorName": "Sam R.",         // displayName, "JOLO member", or "iMessage guest"
+  "source": "app",                // "app" | "imessage"
+  "createdAt": "<Timestamp>"
+}
+```
+
+The app writes `source: "app"` as the signed-in user. The bridge writes `source: "imessage"` with the Admin SDK after the review question in [conversation-design.md](conversation-design.md#reviews). No phone number is stored on a review.
+
 ### `users/{uid}`
 
 Unchanged from the JOLO app. Phone sign-in users get a profile too.
@@ -120,6 +139,7 @@ Unchanged from the JOLO app. Phone sign-in users get a profile too.
 | `cafes/{id}` | anyone | Only the owner, and only to move `currentMenuVersion` up by one to a version created in the same write. Admin SDK for everything else. |
 | `…/menuVersions/{v}` | anyone (customers ask about menus) | Only the owner can create version `current + 1`. Versions are never updated or deleted. |
 | `…/insights/{week}` | owner only | Admin SDK only |
+| `reviews/{id}` | anyone signed in | A signed-in user creates their own (`authorUid` = their uid, `source: "app"`, rating 1–5, a café that exists). Never edited or deleted. The bridge writes iMessage reviews with the Admin SDK. |
 
 **What the brain adds.** It writes `cafes/{id}/menuVersions/{n}` with `source: "imessage"` and `createdBy.phone`, plus one extra field on the version, `agentSource` (photo, owner_text or seed). Items keep their `id` across versions (matched by name and category); `available: false` is what the brain calls "sold out". `insights/{weekStart}` written by the brain has `source: "imessage"` and counts only iMessage conversations. Its own data lives in `agentUsers`, `agentDrafts`, `agentCorrections` and `agentEvents`; the rules deny them to every client. Hours may have several spans per day, and a close time before the open time means the café closes after midnight.
 
@@ -177,6 +197,7 @@ Content-Type: application/json
 | `not_owner` | – | The sender's handle isn't any café's `ownerPhone`. The bridge explains how to get linked. |
 | `unreadable_photo` | `reason` (optional, the reader's `reason`) | `extract_menu()` returned `readable: false` for the photo itself. The bridge asks for a clearer one. |
 | `reader_down` | – | `readable: false` with a `reason` starting `model_error`: the model server or the tunnel is down. The bridge says to try again in a minute. |
+| `cafe_interest` | `cafe_id`, `cafe_name` | After a customer's `say`: the café they looked at most closely this turn (one they asked about by name wins over the top search result). Says nothing; the bridge plans the review question for later. |
 
 The bridge tracks one pending question per conversation: scope or confirmation. While a question is pending, the owner's text is parsed as the answer. If it can't be read as an answer, the bridge asks again and doesn't call the agent.
 

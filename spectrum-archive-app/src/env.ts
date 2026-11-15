@@ -9,8 +9,15 @@ const envPath = fileURLToPath(new URL("../.env", import.meta.url));
 
 // SKIP_DOTENV=1 is for the test suite only, so a developer's real .env can
 // never leak credentials or an LLM_MODEL into a test run.
+// The repo-root .env holds the Firebase key. Loaded second so a value already
+// set in this app's own .env, or in the shell, is left as it is.
+const rootEnvPath = fileURLToPath(new URL("../../.env", import.meta.url));
+
 if (existsSync(envPath) && process.env.SKIP_DOTENV !== "1") {
   process.loadEnvFile(envPath);
+}
+if (existsSync(rootEnvPath) && process.env.SKIP_DOTENV !== "1") {
+  process.loadEnvFile(rootEnvPath);
 }
 
 const read = (name: string) => process.env[name]?.trim() || undefined;
@@ -124,6 +131,12 @@ export const agentToken = read("AGENT_TOKEN");
 // GoogleService-Info.plist; the emulator keeps it separate from demo-jolo.
 export const firestoreEmulatorHost = read("FIRESTORE_EMULATOR_HOST");
 export const firestoreProjectId = read("FIRESTORE_PROJECT_ID") ?? "jolo-ec76d";
-export const firestoreServiceAccount = read("JOLO_SERVICE_ACCOUNT");
+export const firestoreServiceAccount =
+  read("JOLO_SERVICE_ACCOUNT") ?? read("FIREBASE_KEY_FILE") ?? read("GOOGLE_APPLICATION_CREDENTIALS");
+/** Tests set this so a missing key never tries Application Default Credentials. */
+export const skipDotenv = process.env.SKIP_DOTENV === "1";
 // Generous by default: reading a menu photo on a GPU takes a while.
 export const agentTimeoutMs = positiveInt("AGENT_TIMEOUT_MS", 300_000);
+// How long after a customer looks at a café JOLO asks whether they went and
+// want to leave a review. Two hours by default; set it to 60000 for a demo.
+export const reviewPromptDelayMs = positiveInt("REVIEW_PROMPT_DELAY_MS", 2 * 60 * 60 * 1000);

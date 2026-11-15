@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import time
+import uuid
 from datetime import datetime, timezone
 
 from menu_reader.compare import _key
@@ -293,6 +294,59 @@ class FirestoreStore(Store):
                 docs = [doc for doc in docs if doc.get("kind") == kind]
             return sorted((self._event(doc) for doc in docs), key=lambda event: event.created_at)
         return super().list_events(kind, since)
+
+    def record_customer_ask(self, phone, text, cafe_ids=None, history_only=False):
+        """The app reads this on For you. A known phone account gets users/{uid}/events,
+        which the app already loads. Otherwise the ask waits under customerAsks/{phone}."""
+        from jolo_agent.store.models import to_e164
+
+        number = to_e164(phone)
+        body = (text or "").strip()[:280]
+        if not number or not body:
+            return None
+        ids = [cafe_id for cafe_id in (cafe_ids or []) if cafe_id]
+        created = datetime.now(timezone.utc)
+        uid = self._user_id_for_phone(number)
+        if uid:
+            if history_only and ids:
+                for cafe_id in ids:
+                    cafe = self.get_cafe(cafe_id)
+                    self._app_search(uid, cafe.name if cafe else body, cafe_id, created)
+            elif not history_only:
+                self._app_search(uid, body, None, created)
+            return uid
+        self.db.collection("customerAsks").document(number).collection("items").document(uuid.uuid4().hex).set({
+            "text": body,
+            "cafeIds": ids,
+            "historyOnly": bool(history_only),
+            "createdAt": created,
+        })
+        return None
+
+    def _user_id_for_phone(self, phone):
+        group = getattr(self.db, "collection_group", None)
+        if group is None:
+            return None
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        try:
+            query = group("private").where(filter=FieldFilter("phoneNumber", "==", phone))
+            if hasattr(query, "limit"):
+                query = query.limit(1)
+            snaps = list(query.stream())
+        except Exception:
+            log.warning("Could not look up the app user for an iMessage ask", exc_info=True)
+            return None
+        if not snaps:
+            return None
+        ref = getattr(snaps[0], "reference", None)
+        user = getattr(getattr(ref, "parent", None), "parent", None)
+        return getattr(user, "id", None)
+
+    def _app_search(self, uid, text, cafe_id, created):
+        data = {"type": "search", "text": text[:280], "createdAt": created}
+        if cafe_id:
+            data["cafeId"] = cafe_id
+        self.db.collection("users").document(uid).collection("events").document(uuid.uuid4().hex).set(data)
 
     @staticmethod
     def _event(doc):

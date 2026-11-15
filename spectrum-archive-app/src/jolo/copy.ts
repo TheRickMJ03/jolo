@@ -25,6 +25,8 @@ export const copy = {
   askScope: "Is this your full menu, or just part of it?",
   askScopeAgain: 'Sorry, I didn\'t catch that. Is the photo your "full" menu, or just "part" of it?',
   confirmPrompt: 'Reply "yes" to save or "no" to cancel. If something is off, tell me what to fix.',
+  seeWholeMenu: 'Reply "menu" to see the whole menu.',
+  wholeMenu: "Here's the whole menu:",
   confirmAgain:
     'Reply "yes" to save these changes, or "no" to leave your menu as it is. Or tell me what to fix, like "the cortado is 4.50".',
   noChanges: "That looks the same as your current menu, so there's nothing to save.",
@@ -32,6 +34,16 @@ export const copy = {
   cancelled: "Okay, nothing changed. Send another photo whenever you're ready.",
   notOwner:
     "I couldn't find a café linked to this phone number. Ask the JOLO team to link it, then send the photo again.",
+
+  // Customer reviews
+  reviewPrompt: (cafe: string) =>
+    `Let us know if you went to ${cafe}, and want to leave a review. Reply "yes" or "no".`,
+  reviewAskRating: (cafe: string) => `How would you rate ${cafe} from 1 to 5?`,
+  reviewAskRatingAgain: 'Reply with a number from 1 to 5, like "4".',
+  reviewAskComment: 'Thanks! What did you think? Reply "skip" to leave just the rating.',
+  reviewSaved: (cafe: string) => `Thanks! Your review of ${cafe} is on the Social tab in the JOLO app.`,
+  reviewDeclined: "No problem. Enjoy your coffee ☕",
+  reviewSaveFailed: "I couldn't save your review just now. Send your comment again in a minute.",
 
   // Problems
   unreadablePhoto: "I couldn't read that photo. Can you send a clearer one?",
@@ -75,9 +87,20 @@ const byConfidence = (a: MenuItem, b: MenuItem) => (a.confidence ?? 1) - (b.conf
 
 const MAX_DETAIL_LINES = 6;
 
+/** Every change, as the owner would read it. New items are least confident first. */
+export function changeLines(changes: MenuChanges): string[] {
+  const added = [...changes.added].sort(byConfidence);
+  return [
+    ...added.map((item) => `+ ${itemLine(item)}`),
+    ...changes.price_changes.map(priceChangeLine),
+    ...changes.removed.map((name) => `– ${name} (removed)`),
+  ];
+}
+
 /**
  * "Found 2 new items and 3 price changes. Cortado now $4.75?" plus up to six
  * detail lines and the prompt. New items are listed least confident first.
+ * When lines are left off, the owner can reply "menu" to see them all.
  * Null when nothing changed.
  */
 export function confirmSummary(changes: MenuChanges): string | null {
@@ -95,13 +118,18 @@ export function confirmSummary(changes: MenuChanges): string | null {
   if (example) headline += ` ${sized(example)} now ${formatPrice(example.new_usd)}?`;
   else if (added[0]) headline += ` ${itemLine(added[0])}?`;
 
-  const lines = [
-    ...added.map((item) => `+ ${itemLine(item)}`),
-    ...prices.map(priceChangeLine),
-    ...changes.removed.map((name) => `– ${name} (removed)`),
-  ];
+  const lines = changeLines(changes);
   const shown = lines.slice(0, MAX_DETAIL_LINES);
-  if (lines.length > shown.length) shown.push(`…and ${lines.length - shown.length} more`);
+  if (lines.length > shown.length) {
+    shown.push(`…and ${lines.length - shown.length} more. ${copy.seeWholeMenu}`);
+  }
 
   return [headline, ...shown, "", copy.confirmPrompt].join("\n");
+}
+
+/** Every item from the open update, then the same yes/no question. Nothing is saved. */
+export function entireMenu(changes: MenuChanges): string {
+  const lines = changeLines(changes);
+  if (lines.length === 0) return copy.noChanges;
+  return [copy.wholeMenu, ...lines, "", copy.confirmPrompt].join("\n");
 }

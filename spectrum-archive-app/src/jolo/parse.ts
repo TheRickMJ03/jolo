@@ -55,6 +55,64 @@ export function parseConfirmReply(text: string): boolean | "correction" | null {
   return parseConfirm(text);
 }
 
+const ENTIRE_MENU = new Set([
+  "menu",
+  "the menu",
+  "whole menu",
+  "the whole menu",
+  "entire menu",
+  "the entire menu",
+  "full menu",
+  "the full menu",
+  "complete menu",
+  "the complete menu",
+  "all items",
+  "all the items",
+  "every item",
+  "the rest",
+  "rest",
+  "show all",
+  "show me all",
+  "see all",
+  "view all",
+  "show everything",
+  "see everything",
+  "show me everything",
+  "the whole list",
+  "full list",
+  "entire list",
+  "rest of the menu",
+  "the rest of the menu",
+  "rest of it",
+]);
+
+/**
+ * The owner wants every item, not the first few lines. A yes, a no, or a fix
+ * never counts, so "yes, all correct" still saves and "the cortado is 4.50"
+ * still goes to the agent.
+ */
+export function wantsEntireMenu(text: string): boolean {
+  if (/\d/.test(text)) return false;
+  const tokens = words(text);
+  if (tokens.length === 0 || tokens.length > 12) return false;
+  if (tokens.some((token) => FIX_WORDS.has(token) || YES.has(token) || NO.has(token) || NEGATORS.has(token))) {
+    return false;
+  }
+  const plain = tokens
+    .join(" ")
+    .replace(/^(?:please |hey |hi )/, "")
+    .replace(/^(?:can|could) (?:you|i) /, "")
+    .replace(/^i (?:want to|wanna|would like to) /, "")
+    .replace(/^let me /, "")
+    .replace(/ please$/, "");
+  if (ENTIRE_MENU.has(plain)) return true;
+  return (
+    /^(?:show|see|view|list|send)(?: me)? (?:the )?(?:entire |whole |full |complete )?(?:menu|list|items|rest)(?: of (?:the |it )?(?:menu|items|list))?$/.test(
+      plain,
+    ) || /^(?:show|see|view)(?: me)? (?:all|everything)(?: (?:the )?(?:items|menu))?$/.test(plain)
+  );
+}
+
 const FULL = new Set(["full", "whole", "entire", "entirety", "all", "everything", "complete"]);
 const PARTIAL = new Set(["part", "partial", "partly", "some", "section", "only", "half", "portion", "piece"]);
 

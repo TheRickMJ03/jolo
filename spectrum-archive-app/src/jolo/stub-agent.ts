@@ -23,6 +23,8 @@ interface Session {
   /** Owner fixes to the proposal, by item id: the price they gave. */
   fixes: Map<string, number>;
   next?: MenuItem[];
+  /** A photo named "long" stands in for a menu longer than the six-line summary. */
+  long?: boolean;
 }
 
 const CAFE_NAME = "Barbara's";
@@ -101,9 +103,13 @@ export function createStubAgent(options: StubOptions): Server {
       return usd === undefined || entry.prices?.length !== 1 ? entry : { ...entry, prices: [{ size: null, usd }] };
     };
     const dropped = session.scope === "full" ? PHOTO_MISSING : [];
+    const extras: MenuItem[] = session.long
+      ? Array.from({ length: 8 }, (_, i) => item(`extra-${i}`, `Extra ${i}`, "Coffee", "drink", 2 + i * 0.25, 0.8))
+      : [];
     session.next = [
       ...menu.filter((entry) => !dropped.includes(entry.id ?? "")),
       ...PHOTO_ADDS.filter((add) => !menu.some((entry) => entry.id === add.id)),
+      ...extras.filter((add) => !menu.some((entry) => entry.id === add.id)),
     ].map(priced);
     session.phase = "await_confirm";
     return { type: "confirm_changes", cafe_name: CAFE_NAME, changes: diff(menu, session.next) };
@@ -138,6 +144,7 @@ export function createStubAgent(options: StubOptions): Server {
         const names = event.photos.map((photo) => photo.name.toLowerCase());
         if (names.some((name) => name.includes("offline"))) return [{ type: "reader_down" }];
         if (names.some((name) => name.includes("blurry"))) return [{ type: "unreadable_photo", reason: "blurry" }];
+        if (names.some((name) => name.includes("long"))) session.long = true;
         // Another photo of a menu that's already being confirmed is merged in
         // and the summary sent again; otherwise the scope question comes first.
         if (session.phase === "await_confirm") return [propose(session)];
@@ -148,7 +155,12 @@ export function createStubAgent(options: StubOptions): Server {
       if (isOwner && /\bupdate\b/.test(text)) {
         return [{ type: "say", text: "Send me a photo of your menu and I'll read it." }];
       }
-      if (/menu|barbara|price|cost|how much/.test(text)) return [{ type: "say", text: menuText() }];
+      if (/menu|barbara|price|cost|how much/.test(text)) {
+        const said: AgentAction[] = [{ type: "say", text: menuText() }];
+        // A customer looked at the café: the bridge may ask them for a review later.
+        if (!isOwner) said.push({ type: "cafe_interest", cafe_id: "barbaras", cafe_name: CAFE_NAME });
+        return said;
+      }
       return [{ type: "say", text: `I can tell you what's on the menu at ${CAFE_NAME}. Try "What's on the menu at Barbara's?"` }];
     }
 

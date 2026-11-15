@@ -5,8 +5,9 @@ import { isDuplicate } from "./archive/dedupe.ts";
 import { archiveInbound, rememberSpace, sendAndArchive } from "./archive/send.ts";
 import { forget } from "./history.ts";
 import { joloAgent, type AgentClient } from "./jolo/agent-client.ts";
-import { handleJolo, joloState } from "./jolo/conversation.ts";
+import { handleJolo, type JoloContext, joloState } from "./jolo/conversation.ts";
 import { linkOwnerCafe, type LinkedCafe } from "./jolo/link-cafe.ts";
+import { recordCustomerAsk } from "./jolo/customer-asks.ts";
 import { llmEnabled, LlmError } from "./llm.ts";
 
 const SIGNAL_CONTENT: ReadonlySet<string> = new Set([
@@ -25,6 +26,12 @@ export interface RespondOptions {
   agent?: AgentClient;
   /** Writes the owner's café. Defaults to the Firestore emulator. */
   linkOwner?: (profile: LinkedCafe) => Promise<void>;
+  /** Saves a customer's question for the app. */
+  recordAsk?: (phone: string, text: string) => Promise<void>;
+  /** Saves a customer's review for the app. */
+  saveReview?: JoloContext["saveReview"];
+  /** How long after a café is looked at to ask for a review. */
+  reviewDelayMs?: number;
 }
 
 // Shared by both inbound paths. `app.webhook()` is stateless and does not feed
@@ -73,7 +80,16 @@ export async function respond(
   // JOLO flow (AGENT_URL set): onboarding, then Bhavesh's agent. Photos too.
   if (agent) {
     await space.responding(() =>
-      handleJolo({ space, message, agent, say, linkOwner: options.linkOwner ?? linkOwnerCafe }),
+      handleJolo({
+        space,
+        message,
+        agent,
+        say,
+        linkOwner: options.linkOwner ?? linkOwnerCafe,
+        recordAsk: options.recordAsk ?? recordCustomerAsk,
+        ...(options.saveReview ? { saveReview: options.saveReview } : {}),
+        ...(options.reviewDelayMs !== undefined ? { reviewDelayMs: options.reviewDelayMs } : {}),
+      }),
     );
     return;
   }

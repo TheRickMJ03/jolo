@@ -214,12 +214,88 @@ describe("analytics", () => {
   });
 });
 
+describe("imessage asks", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "customerAsks/+19085551234/items/a1"), {
+        text: "chai tea",
+        historyOnly: false,
+        createdAt: new Date(),
+      });
+    });
+  });
+
+  it("lets that phone read its asks, and no one else write or read them", async () => {
+    await assertSucceeds(getDoc(doc(asPhone("texter", "+19085551234"), "customerAsks/+19085551234/items/a1")));
+    await assertFails(getDoc(doc(asPhone("other", "+12015550000"), "customerAsks/+19085551234/items/a1")));
+    await assertFails(getDoc(doc(asUser("alice"), "customerAsks/+19085551234/items/a1")));
+    await assertFails(
+      setDoc(doc(asPhone("texter", "+19085551234"), "customerAsks/+19085551234/items/a2"), {
+        text: "nope",
+      }),
+    );
+  });
+});
+
 describe("areas", () => {
   it("lets anyone signed in read area trends, and no client write them", async () => {
     await assertSucceeds(getDoc(doc(asUser("alice"), "areas/union-county-nj")));
     await assertSucceeds(getDoc(doc(asOwner(), "areas/union-county-nj")));
     await assertFails(getDoc(doc(asGuest(), "areas/union-county-nj")));
     await assertFails(setDoc(doc(asUser("alice"), "areas/union-county-nj"), { trending: [] }));
+  });
+});
+
+describe("reviews", () => {
+  const review = (overrides = {}) => ({
+    cafeId: "cafe1",
+    cafeName: "Barbara's",
+    rating: 4,
+    comment: "Great cortado",
+    authorUid: "alice",
+    authorName: "Alice",
+    source: "app",
+    createdAt: serverTimestamp(),
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "reviews/r1"), {
+        ...review({ createdAt: new Date() }),
+        source: "imessage",
+        authorUid: null,
+      });
+    });
+  });
+
+  it("lets anyone signed in read them, and no visitor", async () => {
+    await assertSucceeds(getDoc(doc(asUser("bob"), "reviews/r1")));
+    await assertFails(getDoc(doc(asGuest(), "reviews/r1")));
+  });
+
+  it("lets a signed-in user post their own review of a real café", async () => {
+    await assertSucceeds(setDoc(doc(asUser("alice"), "reviews/r2"), review()));
+    await assertSucceeds(setDoc(doc(asUser("alice"), "reviews/r3"), review({ comment: "" })));
+  });
+
+  it("rejects reviews as someone else, of no café, or out of shape", async () => {
+    const as = (id, data) => setDoc(doc(asUser("alice"), `reviews/${id}`), data);
+    await assertFails(setDoc(doc(asGuest(), "reviews/g"), review()));
+    await assertFails(as("x1", review({ authorUid: "bob" })));
+    await assertFails(as("x2", review({ cafeId: "nowhere" })));
+    await assertFails(as("x3", review({ rating: 0 })));
+    await assertFails(as("x4", review({ rating: 6 })));
+    await assertFails(as("x5", review({ rating: 4.5 })));
+    await assertFails(as("x6", review({ comment: "a".repeat(501) })));
+    await assertFails(as("x7", review({ source: "imessage" })));
+    await assertFails(as("x8", review({ createdAt: new Date("2020-01-01") })));
+    await assertFails(as("x9", { ...review(), phone: "+19085551234" }));
+  });
+
+  it("never lets a review be edited or deleted", async () => {
+    await assertFails(updateDoc(doc(asUser("alice"), "reviews/r1"), { rating: 1 }));
+    await assertFails(deleteDoc(doc(asUser("alice"), "reviews/r1")));
   });
 });
 

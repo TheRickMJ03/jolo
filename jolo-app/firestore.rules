@@ -49,6 +49,21 @@ service cloud.firestore {
         && (data.type == 'search' || data.keys().hasAll(['cafeId', 'itemId', 'itemName']));
     }
 
+    // A review posted from the app, by the signed-in user, about a café that exists.
+    function validAppReview(data) {
+      let keys = ['cafeId', 'cafeName', 'rating', 'comment', 'authorUid', 'authorName', 'source', 'createdAt'];
+      return data.keys().hasAll(keys) && data.keys().hasOnly(keys)
+        && data.cafeId is string && data.cafeId.size() > 0 && data.cafeId.size() <= 80
+        && exists(cafePath(data.cafeId))
+        && data.cafeName is string && data.cafeName.size() > 0 && data.cafeName.size() <= 120
+        && data.rating is int && data.rating >= 1 && data.rating <= 5
+        && data.comment is string && data.comment.size() <= 500
+        && data.authorUid == request.auth.uid
+        && data.authorName is string && data.authorName.size() > 0 && data.authorName.size() <= 60
+        && data.source == 'app'
+        && data.createdAt == request.time;
+    }
+
     // A menu version written by the app. Item-level checks happen in the app
     // (lib/menu.js); rules can't loop over a list.
     function validAppVersion(data, version) {
@@ -144,6 +159,23 @@ service cloud.firestore {
     match /areas/{area} {
       allow read: if request.auth != null;
       allow write: if false;
+    }
+
+    // iMessage asks saved before this phone has an app account. Once they sign
+    // in with that number, For you reads them. The bridge and the agent write.
+    match /customerAsks/{phone}/items/{itemId} {
+      allow read: if request.auth != null
+        && request.auth.token.phone_number == phone;
+      allow write: if false;
+    }
+
+    // Customer reviews: the Social tab's feed (newest first) and the café
+    // owner's Reviews tab. Written from the app here, or over iMessage by the
+    // bridge with the Admin SDK (source "imessage"). A review is never edited.
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && validAppReview(request.resource.data);
+      allow update, delete: if false;
     }
 
     // Shared niche cache. The worker writes it; clients never do.

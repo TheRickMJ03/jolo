@@ -129,7 +129,7 @@ class Brain:
         phone_hash = hash_handle(phone)
         self.outbox.register(phone_hash, phone)
         text = clean_text(text)
-        self.last = {"calls": [], "regenerated": False, "fallback": False}
+        self.last = {"calls": [], "regenerated": False, "fallback": False, "cafe": None}
         try:
             with self.flow.lock(phone_hash):
                 cafe = self.store.find_cafe_by_owner(phone_hash)
@@ -137,7 +137,7 @@ class Brain:
                     return self._photos(phone_hash, cafe, photos, text)
                 if not text:
                     return [messages.EMPTY_MESSAGE]
-                replies = self._owner_turn(phone_hash, cafe, text) if cafe else self._customer_turn(phone_hash, text)
+                replies = self._owner_turn(phone_hash, cafe, text) if cafe else self._customer_turn(phone_hash, text, phone)
                 history = self._history[phone_hash]
                 history.append(HumanMessage(text))
                 history.append(AIMessage("\n".join(replies)))
@@ -247,7 +247,7 @@ class Brain:
         bridge's "confirm" event.
         """
         phone_hash = hash_handle(phone)
-        self.last = {"calls": [], "regenerated": False, "fallback": False}
+        self.last = {"calls": [], "regenerated": False, "fallback": False, "cafe": None}
         try:
             with self.flow.lock(phone_hash):
                 cafe = self.store.find_cafe_by_owner(phone_hash)
@@ -267,12 +267,13 @@ class Brain:
 
     # ---------- customer ----------
 
-    def _customer_turn(self, phone_hash, text):
-        context = Context(self.store, self.flow, self.search, self.config, phone_hash)
+    def _customer_turn(self, phone_hash, text, phone=None):
+        context = Context(self.store, self.flow, self.search, self.config, phone_hash, phone=phone)
         tools = customer_tools(context)
         conversation = [SystemMessage(CUSTOMER_PROMPT), *self._history[phone_hash], HumanMessage(text)]
         turn = run_turn(self.model, tools, conversation, max_rounds=self.settings["max_tool_rounds"])
         self.last["calls"] = [(call.name, call.args) for call in turn.calls]
+        self.last["cafe"] = context.focus
         evidence = [text] + [call.text for call in turn.calls]
         return [self._grounded(turn, evidence, tools) or template_reply(turn.calls) or NO_GROUNDED_ANSWER]
 

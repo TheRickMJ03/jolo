@@ -9,8 +9,11 @@
 """
 
 import random
+import logging
 
 from jolo_agent.places import is_open, local_now, miles_between, resolve_location
+
+log = logging.getLogger("jolo.search")
 
 
 def feedback_counts(store):
@@ -59,7 +62,7 @@ class CafeSearch:
         return found
 
     def search(self, query, near=None, open_now=False, max_miles=None, now=None,
-               phone_hash=None, mode="hybrid", rerank=True, bandit=None, record=True):
+               phone_hash=None, phone=None, mode="hybrid", rerank=True, bandit=None, record=True):
         """Returns {"results": [...], "note": str or None}.
 
         near: a landmark, a café name or "lat,lng"; None when the customer gave no place.
@@ -115,8 +118,14 @@ class CafeSearch:
         top = top[:self.settings["results"]]
 
         if record and top:
+            shown = [result["cafe"].cafe_id for result in top]
             self.store.add_event("search", phone_hash=phone_hash,
-                                 data={"query": query, "shown": [result["cafe"].cafe_id for result in top]})
+                                 data={"query": query, "shown": shown})
+            if phone:
+                try:
+                    self.store.record_customer_ask(phone, query, shown, history_only=True)
+                except Exception:
+                    log.exception("Could not save the iMessage search for the app")
         return {"results": [self._public(result) for result in top], "note": note}
 
     @staticmethod
