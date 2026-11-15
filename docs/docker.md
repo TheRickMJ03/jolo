@@ -51,3 +51,40 @@ rm -rf data/store.json data/index && docker compose up -d   # start from a fresh
 ```
 
 Rebuild with `--build` after pulling code changes. Edits to files in `data/` do not need a rebuild, because `./data` is mounted.
+
+## Against the shared Firestore database (jolo-ec76d)
+
+The default start uses a local JSON store with invented demo cafés. To use the real database (the same cafés the app shows) add the override file:
+
+```bash
+# .env: FIREBASE_KEY_FILE=/full/path/to/the-service-account-key.json   (never commit the key)
+docker compose -f docker-compose.yml -f docker-compose.firestore.yml up -d --build
+```
+
+- The container does **not** seed anything in this mode. `GET /health` should show `"store": "firestore"` and the café count from the database (Union County + the 15 Princeton cafés = 86 at the time of writing).
+- The search index is built from Firestore on the first start (a few minutes: it downloads ~1.2 GB of models).
+- Switch back to the local store: `docker compose down`, then `docker compose up -d` (without the second file).
+
+## Test with the iMessage bridge (Isaiah's Mac)
+
+1. Start the tunnel and the container as above. `curl -H "Authorization: Bearer $AGENT_TOKEN" http://localhost:8090/health` must say `"model_server": true`.
+2. In `spectrum-archive-app/.env`: `AGENT_URL=http://localhost:8090` and `AGENT_TOKEN=` the same value as the container's.
+3. Make a phone the owner of a café (Admin SDK, dry run first):
+   ```bash
+   cd jolo-app
+   npm run link-owner -- --service-account <key.json> --cafe osm-node-4827959907 --phone "<number>"     # Junbi; add --yes to apply
+   ```
+4. `npm start` in `spectrum-archive-app`, then text from that phone.
+
+What to try:
+
+| Test | What you should see |
+|---|---|
+| Customer: "tell me about Junbi" | A real café from the database, no invented menu items |
+| Customer: "where can I get a cortado?" | Only cafés with a menu; a café without one is "menu coming soon" |
+| Customer: "coffee near Palmer Square" | Real Princeton cafés, nearest first |
+| Owner: send a menu photo | "Reading your menu…", then a full or partial question |
+| Owner: answer "full", correct an item, then say yes | `menuVersions/1` appears under the café in the console, `currentMenuVersion: 1` |
+| Owner: send a second photo with one price changed | `menuVersions/2` with `changes.price_changes`; version 1 is kept |
+| After saving, the customer asks for that drink | The new item is found (the index refreshes within seconds) |
+| Stranger texts "update the menu" | Treated as a customer: ownership comes from the handle, never the text |

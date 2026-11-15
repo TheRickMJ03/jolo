@@ -84,10 +84,19 @@ def _number(value):
         return None
 
 
+def _lat_lng(location):
+    """location as the app stores it: a Firestore GeoPoint (latitude/longitude), or a {"lat", "lng"} map."""
+    if location is None:
+        return None, None
+    if hasattr(location, "latitude"):
+        return _number(location.latitude), _number(location.longitude)
+    return _number(location.get("lat")), _number(location.get("lng"))
+
+
 def cafe_from_doc(cafe_id, doc):
     """The app's café document -> Cafe. Tolerates missing fields: a café the bridge just created has only
     a name, an owner and currentMenuVersion 0."""
-    location = doc.get("location") or {}
+    lat, lng = _lat_lng(doc.get("location"))
     owner_phone = (doc.get("ownerPhone") or "").strip() or None
     version = doc.get("currentMenuVersion")
     return Cafe(
@@ -96,8 +105,8 @@ def cafe_from_doc(cafe_id, doc):
         owner_phone=owner_phone,
         owner_phone_hash=hash_handle(owner_phone) if owner_phone else None,
         address=doc.get("address"),
-        lat=_number(location.get("lat")),
-        lng=_number(location.get("lng")),
+        lat=lat,
+        lng=lng,
         hours=hours_from_app(doc.get("hours")),
         hours_text=doc.get("hoursText"),
         vibe=doc.get("vibe"),
