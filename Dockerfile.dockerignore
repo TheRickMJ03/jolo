@@ -1,0 +1,17 @@
+# Used by the root Dockerfile (the trends job keeps its own .dockerignore).
+.git
+.venv
+.github
+.env
+**/__pycache__
+docs
+eval/originals
+eval/photos
+eval/cache
+eval/results
+jolo-app
+spectrum-archive-app
+models
+data/store.json
+data/index
+tests

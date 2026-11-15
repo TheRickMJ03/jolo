@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+cd /app
+
+# First start (empty volume): fill the store and build the search index.
+if [ ! -f data/store.json ]; then
+  echo "First start: seeding the store..."
+  if [ -n "$JOLO_OWNERS" ]; then
+    set --; for o in $(echo "$JOLO_OWNERS" | tr ',' ' '); do set -- "$@" --owner "$o"; done
+    python scripts/seed_store.py "$@"
+  else
+    python scripts/seed_store.py
+  fi
+fi
+if [ ! -d data/index ]; then
+  echo "Building the search index (downloads ~1.2 GB of models the first time)..."
+  python scripts/build_index.py || echo "Index build failed; search will be limited."
+fi
+
+exec python -m uvicorn api.app:create_app --factory --host 0.0.0.0 --port 8080

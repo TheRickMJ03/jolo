@@ -1,0 +1,23 @@
+services:
+  jolo:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Required: callers must send "Authorization: Bearer <AGENT_TOKEN>" or X-Jolo-Key.
+      AGENT_TOKEN: ${AGENT_TOKEN:?set AGENT_TOKEN in .env}
+      JOLO_PHONE_SALT: ${JOLO_PHONE_SALT:-jolo-dev}
+      # Where the Qwen model server is. Default: the SSH tunnel on this computer's port 8000.
+      JOLO_MODEL_ENDPOINT: ${JOLO_MODEL_ENDPOINT:-http://host.docker.internal:8000/v1}
+      # Comma list, only used on the first start: +16095550100=barbaras
+      JOLO_OWNERS: ${JOLO_OWNERS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - jolo-data:/app/data        # store + search index survive restarts
+      - jolo-models:/app/models    # Hugging Face downloads
+    restart: unless-stopped
+
+volumes:
+  jolo-data:
+  jolo-models:
