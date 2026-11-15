@@ -40,17 +40,24 @@ agentUsers, agentDrafts, agentCorrections, agentEvents    the agent's own data; 
 
 ## Putting the real Princeton cafés in
 
-15 real cafés from OpenStreetMap are in [`data/cafes_osm.yaml`](../data/cafes_osm.yaml). They have names, coordinates and (for most) addresses, but **no menus**. Owners add menus themselves by texting a photo.
+15 real cafés from OpenStreetMap are in [`data/cafes_osm.yaml`](../data/cafes_osm.yaml): names, coordinates, most addresses, **no menus** (owners add those by texting a photo).
+
+`scripts/push_cafes_firestore.py` writes them into the app's existing `cafes` collection in the **same shape as the app's own OSM import** (`jolo-app/scripts/seed-cafes.mjs`): id `osm-node-<id>`, `osmId`, `nameLower`, `municipality`, `amenities`, `hours` as `[{open, close}]` per day, a GeoPoint `location`, and zeroed counters.
 
 ```bash
-python scripts/load_real_cafes.py --dry-run          # list what would be written
-# config.yaml: agent.store.backend: firestore
-# env: GOOGLE_APPLICATION_CREDENTIALS=<path to key.json>
-python scripts/load_real_cafes.py --really-write-to-firestore
+# 1. Try it on the emulator (needs Java; `npm run emulators` in jolo-app)
+FIRESTORE_EMULATOR_HOST=localhost:8080 python scripts/push_cafes_firestore.py --write
+
+# 2. Dry run against the real project (reads, writes nothing)
+GOOGLE_APPLICATION_CREDENTIALS=<key.json> python scripts/push_cafes_firestore.py
+
+# 3. The real write
+GOOGLE_APPLICATION_CREDENTIALS=<key.json> python scripts/push_cafes_firestore.py --write --really-write-to-firestore
 ```
 
-- It only creates cafés that are missing and never overwrites the app's fields.
-- Check the field names above against what the app reads before the first real write.
+- A café is skipped if a document with that id **or the same `osmId`** already exists, so it is safe to run twice or after the app's import. Existing documents are never modified.
+- It never sets `ownerPhone`; use `npm run link-owner` in `jolo-app` for that.
+- Hours are missing for most of the 15 (OpenStreetMap has none). Fill them in by hand for the cafés you will show.
 
 ## Do not
 

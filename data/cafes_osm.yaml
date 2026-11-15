@@ -10,10 +10,16 @@ cafes:
     lng: -74.654813
     name: Ellinikon
     osm:
+      brand: null
       cuisine: greek
+      drive_through: null
       id: node/10085089043
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: true
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''
   fresh_tea:
@@ -23,10 +29,16 @@ cafes:
     lng: -74.6517479
     name: Fresh Ó Tea
     osm:
+      brand: null
       cuisine: bubble_tea
+      drive_through: null
       id: node/1324536985
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''
   illy_coffee_at_earth_s_end_princeton:
@@ -36,10 +48,16 @@ cafes:
     lng: -74.6584799
     name: illy Coffee At Earth's End Princeton
     osm:
+      brand: null
       cuisine: coffee_shop
+      drive_through: null
       id: way/491809778
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: '+16093560407'
       website: https://earthsend.com/coffee/
+      wifi: null
     summary: ''
     vibe: ''
   jammin_community_cafe:
@@ -49,10 +67,16 @@ cafes:
     lng: -74.6603132
     name: Jammin’ Community Cafe
     osm:
+      brand: null
       cuisine: null
+      drive_through: null
       id: node/12138697740
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''
   junbi:
@@ -71,10 +95,16 @@ cafes:
     lng: -74.6600247
     name: Junbi
     osm:
+      brand: null
       cuisine: bubble_tea
+      drive_through: false
       id: node/4827959907
+      municipality: Princeton
       opening_hours: Mo-Su 07:00-22:00
+      outdoor_seating: null
+      phone: +1 609-497-3244
       website: https://junbishop.com
+      wifi: null
     summary: ''
     vibe: ''
   kung_fu_tea:
@@ -84,10 +114,16 @@ cafes:
     lng: -74.6603363
     name: Kung Fu Tea
     osm:
+      brand: Kung Fu Tea
       cuisine: bubble_tea
+      drive_through: null
       id: node/4828008622
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''
   maman:
@@ -97,10 +133,16 @@ cafes:
     lng: -74.662341
     name: maman
     osm:
+      brand: null
       cuisine: coffee_shop
+      drive_through: null
       id: node/10208613197
+      municipality: princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''
   rojo_s_roastery:
@@ -110,10 +152,16 @@ cafes:
     lng: -74.6618309
     name: Rojo's Roastery
     osm:
+      brand: null
       cuisine: coffee_shop
+      drive_through: null
       id: node/4806032631
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''
   sakrid_coffee_roasters:
@@ -123,10 +171,16 @@ cafes:
     lng: -74.6626346
     name: Sakrid Coffee Roasters
     osm:
+      brand: null
       cuisine: coffee_shop
+      drive_through: null
       id: node/4828014673
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''
   small_world_coffee:
@@ -136,10 +190,16 @@ cafes:
     lng: -74.6511995
     name: Small World Coffee
     osm:
+      brand: null
       cuisine: coffee_shop
+      drive_through: null
       id: node/1324536996
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: https://smallworldcoffee.com/
+      wifi: null
     summary: ''
     vibe: ''
   small_world_coffee_2201042063:
@@ -149,10 +209,16 @@ cafes:
     lng: -74.6601565
     name: Small World Coffee
     osm:
+      brand: null
       cuisine: coffee_shop
+      drive_through: null
       id: node/2201042063
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: https://smallworldcoffee.com/14-witherspoon/
+      wifi: true
     summary: ''
     vibe: ''
   starbucks:
@@ -171,10 +237,16 @@ cafes:
     lng: -74.6594551
     name: Starbucks
     osm:
+      brand: Starbucks
       cuisine: coffee_shop
+      drive_through: null
       id: node/2202090896
+      municipality: Princeton
       opening_hours: Mo-Su 06:00-20:00
+      outdoor_seating: null
+      phone: +1 609-279-9204
       website: https://www.starbucks.com/store-locator/store/15915/princeton-100-nassau-street-princeton-nj-085424516-us
+      wifi: true
     summary: ''
     vibe: ''
   starbucks_11110299405:
@@ -184,10 +256,16 @@ cafes:
     lng: -74.6518121
     name: Starbucks
     osm:
+      brand: Starbucks
       cuisine: coffee_shop
+      drive_through: null
       id: node/11110299405
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: +1 609-991-5565
       website: https://www.starbucks.com/store-locator/store/1042940/princeton-harrison-st-cafe-301-north-harrison-street-space-580-princeton-nj-0
+      wifi: null
     summary: ''
     vibe: ''
   teresa_s_cafe_wine_bar:
@@ -197,10 +275,16 @@ cafes:
     lng: -74.6608571
     name: Teresa's Cafe & Wine Bar
     osm:
+      brand: null
       cuisine: italian
+      drive_through: null
       id: node/2302061025
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: +1 609-921-1974
       website: https://www.teresacaffe.com/
+      wifi: null
     summary: ''
     vibe: ''
   tico_s_eatery_juice_bar:
@@ -210,9 +294,15 @@ cafes:
     lng: -74.6599038
     name: Tico's Eatery & Juice Bar
     osm:
+      brand: null
       cuisine: null
+      drive_through: null
       id: node/4829764368
+      municipality: Princeton
       opening_hours: null
+      outdoor_seating: null
+      phone: null
       website: null
+      wifi: null
     summary: ''
     vibe: ''

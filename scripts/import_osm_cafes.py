@@ -87,12 +87,19 @@ def to_cafe(element):
     lng = element.get("lon") or element.get("center", {}).get("lon")
     street = " ".join(filter(None, [tags.get("addr:housenumber"), tags.get("addr:street")]))
     address = ", ".join(filter(None, [street, tags.get("addr:city") or "Princeton"]))
+    def yes_no(value):
+        return None if value is None else value in ("yes", "wlan", "wifi", "free")
     cafe = {"name": name, "address": address, "lat": lat, "lng": lng,
             "hours": parse_hours(tags.get("opening_hours")),
             "vibe": "", "summary": "",
             "osm": {"id": f"{element['type']}/{element['id']}",
                     "opening_hours": tags.get("opening_hours"), "website": tags.get("website"),
-                    "cuisine": tags.get("cuisine")}}
+                    "cuisine": tags.get("cuisine"), "phone": tags.get("phone") or tags.get("contact:phone"),
+                    "brand": tags.get("brand"),
+                    "municipality": tags.get("addr:city") or "Princeton",
+                    "wifi": yes_no(tags.get("internet_access")),
+                    "outdoor_seating": yes_no(tags.get("outdoor_seating")),
+                    "drive_through": yes_no(tags.get("drive_through"))}}
     return cafe
 
 
