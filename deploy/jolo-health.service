@@ -1,0 +1,9 @@
+# Exits non-zero (and logs why) when the brain is down or its model server is unreachable. Run by jolo-health.timer.
+[Unit]
+Description=JOLO brain health check
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/jolo
+ExecStart=/home/ubuntu/jolo/.venv/bin/python scripts/healthcheck.py

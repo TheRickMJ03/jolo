@@ -41,6 +41,18 @@ def hash_phone(phone, salt=None):
     return hashlib.sha256(f"{salt}:{identity}".encode()).hexdigest()[:32]
 
 
+def to_e164(handle):
+    """'+1 (609) 555-0100' -> '+16095550100', the form the app stores in ownerPhone. None for an email or
+    a handle that isn't a phone number."""
+    text = (handle or "").strip()
+    if not text or "@" in text:
+        return None
+    digits = re.sub(r"\D", "", text)
+    if len(digits) == 10:
+        digits = "1" + digits
+    return "+" + digits if len(digits) >= 7 else None
+
+
 def hash_handle(handle, salt=None):
     """Who is texting, as the bridge reports it: a phone number, an Apple ID email, or (on the
     terminal platform) a plain name like "terminal-user". Phone numbers hash exactly as hash_phone does."""
@@ -58,10 +70,13 @@ class Cafe(BaseModel):
     cafe_id: str
     name: str
     owner_phone_hash: str | None = None
+    owner_phone: str | None = None     # the number as the app stores it (E.164); the hash is made from it
     address: str | None = None
     lat: float | None = None
     lng: float | None = None
-    hours: dict[str, list[str]] = Field(default_factory=dict)   # {"mon": ["07:00", "15:00"]}; no key = closed
+    # {"mon": ["07:00", "15:00"]}; no key or [] = closed. A day with a break lists more pairs:
+    # ["07:00", "11:00", "13:00", "18:00"].
+    hours: dict[str, list[str]] = Field(default_factory=dict)
     hours_text: str | None = None      # hours as printed on the last menu photo, if any
     vibe: str | None = None
     summary: str | None = None
@@ -79,6 +94,7 @@ class MenuVersion(BaseModel):
     source: Literal["photo", "owner_text", "app", "seed"] = "photo"
     scope: Literal["full", "partial"] | None = None
     changes: Changes = Field(default_factory=Changes)    # against the version before
+    sold_out: list[str] = Field(default_factory=list)    # names of items the owner marked sold out in the app
     created_at: str = Field(default_factory=utcnow)
 
 

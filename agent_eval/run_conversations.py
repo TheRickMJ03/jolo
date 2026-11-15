@@ -1,4 +1,4 @@
-"""Run the 30 scripted conversations against the agent and score them.
+"""Run the scripted conversations (agent_eval/conversations.yaml) against the agent and score them.
 
 Usage (from the repo root, venv active):
     python agent_eval/run_conversations.py            # the real model: VM server running, tunnel open
@@ -138,6 +138,9 @@ def check_turn(turn, calls, reply, oracle):
                 reply_problems.append(f'reply lacks "{text}"')
         if turn.get("reply_any") and not any(text.lower() in lowered for text in turn["reply_any"]):
             reply_problems.append(f"reply has none of {turn['reply_any']}")
+        for text in turn.get("reply_lacks", []):
+            if text.lower() in lowered:
+                reply_problems.append(f'reply must not contain "{text}"')
     return tool_problems, reply_problems
 
 
@@ -147,6 +150,10 @@ def check_store(store, spec):
     menu = {_key(item.item): item for item in store.get_current_menu("barbaras").items}
     if "version" in spec and cafe.current_version != spec["version"]:
         problems.append(f"menu version is {cafe.current_version}, expected {spec['version']}")
+    for cafe_id, version in (spec.get("versions") or {}).items():       # other cafés must not have been touched
+        other = store.get_cafe(cafe_id)
+        if other is None or other.current_version != version:
+            problems.append(f"{cafe_id} is at version {other.current_version if other else None}, expected {version}")
     for name, usd in (spec.get("prices") or {}).items():
         item = menu.get(_key(name))
         if item is None or not any(abs(price.usd - usd) < 0.005 for price in item.prices):

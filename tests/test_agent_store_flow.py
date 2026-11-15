@@ -10,7 +10,7 @@ from jolo_agent import messages
 from jolo_agent.flow import MenuUpdateFlow
 from jolo_agent.menu_ops import (EditError, apply_op, changes_between, final_items, find_item, has_generic_sizes,
                                  items_to_check)
-from jolo_agent.store import MemoryStore, hash_phone
+from jolo_agent.store import Draft, MemoryStore, hash_phone
 
 PHONE = hash_phone(OWNER)
 
@@ -337,3 +337,15 @@ def test_first_menu_for_a_cafe_and_sizes_note():
     assert "first menu" in summary and messages.SIZES_NOTE in summary
     assert flow.confirm(PHONE) == "Your menu is saved: 1 items."
     assert store.get_cafe("curiosity").hours_text == "7am - 3pm"
+
+
+def test_a_read_lost_in_a_restart_is_dropped_at_startup_but_open_updates_are_kept():
+    held = HeldExecutor()
+    flow, store, _sent = make_flow(result(item("Mocha", 6.0)), executor=held)
+    flow.start_read(PHONE, b"photo")                      # the "process" dies here: the read never finishes
+    other = hash_phone("+1 609 555 0177")
+    store.save_draft(Draft(phone_hash=other, cafe_id="curiosity", state="awaiting_confirmation"))
+    assert store.get_draft(PHONE).state == "reading"
+    assert flow.recover_orphaned_reads() == 1
+    assert store.get_draft(PHONE) is None and store.get_draft(other) is not None
+    assert flow.recover_orphaned_reads() == 0

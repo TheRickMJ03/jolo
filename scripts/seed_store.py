@@ -11,6 +11,7 @@ demo data; see the note at the top of that file.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -22,7 +23,7 @@ sys.path.insert(0, str(REPO))
 
 from menu_reader.config import load_config            # noqa: E402
 from menu_reader.schema import MenuItem, Price        # noqa: E402
-from jolo_agent.store import Cafe, User, hash_handle, open_store   # noqa: E402
+from jolo_agent.store import Cafe, User, hash_handle, open_store, to_e164   # noqa: E402
 
 
 def menus_from_ground_truth():
@@ -61,6 +62,7 @@ def seed(store, owners=()):
             sys.exit(f"No café {cafe_id!r}. Choose from: {', '.join(c.cafe_id for c in store.list_cafes())}")
         phone_hash = hash_handle(phone)
         cafe.owner_phone_hash = phone_hash
+        cafe.owner_phone = to_e164(phone) or phone      # what the app's ownerPhone holds
         store.upsert_cafe(cafe)
         store.upsert_user(User(phone_hash=phone_hash, role="owner", cafe_id=cafe_id))
     return added
@@ -72,10 +74,17 @@ def main():
     parser.add_argument("--reset", action="store_true", help="memory backend: delete the store file first")
     parser.add_argument("--owner", action="append", default=[], metavar="PHONE=CAFE_ID",
                         help="register a phone number as the owner of a café (repeatable)")
+    parser.add_argument("--really-write-to-firestore", action="store_true",
+                        help="allow seeding the invented demo cafés into a real Firestore project (not the emulator)")
     args = parser.parse_args()
 
     config = load_config()
     settings = config["agent"]["store"]
+    if (settings["backend"] == "firestore" and not os.environ.get("FIRESTORE_EMULATOR_HOST")
+            and not args.really_write_to_firestore):
+        sys.exit("This would write the 22 invented demo cafés into the real Firestore project that the app uses.\n"
+                 "Use the emulator (set FIRESTORE_EMULATOR_HOST), or pass --really-write-to-firestore if you mean it.\n"
+                 "To only link an owner to a café that already exists, you don't need this script: set the café's ownerPhone.")
     if args.reset:
         if settings["backend"] != "memory":
             sys.exit("--reset only works with the memory backend. Delete Firestore data in the Firebase console.")

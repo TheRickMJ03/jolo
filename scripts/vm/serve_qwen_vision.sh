@@ -16,9 +16,19 @@
 #   --max-model-len 16384            a photo plus a full menu fits; without it the
 #                                    server asks for the full 262,144 and fails to start
 #   (no --language-model-only)       that flag would switch off the vision part
+#
+# Optional, for the agent's native tool calling (config.yaml agent.tool_mode: native):
+#   TOOL_PARSER=hermes bash scripts/vm/serve_qwen_vision.sh
+# adds --enable-auto-tool-choice --tool-call-parser hermes. Without it nothing changes, and the
+# agent uses its JSON mode. Compare parsers with agent_eval/run_conversations.py (see docs/brain.md).
 set -euo pipefail
 
 source ~/vllm-env/bin/activate
+
+TOOL_FLAGS=()
+if [ -n "${TOOL_PARSER:-}" ]; then
+  TOOL_FLAGS=(--enable-auto-tool-choice --tool-call-parser "$TOOL_PARSER")
+fi
 
 vllm serve RedHatAI/Qwen3.5-9B-FP8-dynamic \
   --port 8000 \
@@ -27,4 +37,5 @@ vllm serve RedHatAI/Qwen3.5-9B-FP8-dynamic \
   --default-chat-template-kwargs '{"enable_thinking": false}' \
   --max-model-len 16384 \
   --max-num-seqs 4 \
-  --gpu-memory-utilization 0.90
+  --gpu-memory-utilization 0.90 \
+  ${TOOL_FLAGS[@]+"${TOOL_FLAGS[@]}"}

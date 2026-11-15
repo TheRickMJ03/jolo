@@ -40,10 +40,16 @@ SETUPS = [("keyword (BM25)", "bm25", False), ("vectors", "vector", False),
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-rerank", action="store_true", help="skip the reranker setup")
+    parser.add_argument("--rerank-top", type=int, help="how many cafés the reranker scores (config: agent.search.rerank_top)")
+    parser.add_argument("--device", choices=["cpu", "cuda", "auto"], help="where the retrieval models run (config: agent.search.device)")
+    parser.add_argument("--rerank-min-words", type=int, help="skip the reranker for shorter queries (config: agent.search.rerank_min_words)")
     args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     config = load_config()
+    for value, key in ((args.rerank_top, "rerank_top"), (args.device, "device"), (args.rerank_min_words, "rerank_min_words")):
+        if value is not None:
+            config["agent"]["search"][key] = value      # measure a setting without editing config.yaml
     store = open_store(config)
     embedder, reranker, notes = load_models(config)
     index = SearchIndex(REPO / config["agent"]["search"]["index_dir"], embedder)
@@ -81,7 +87,10 @@ def main():
                      "recall_at_20": round(sum(recalls) / len(recalls), 3),
                      "seconds_per_query": round(seconds, 2), "per_query_ndcg": per_query})
 
-    print(f"\n{len(queries)} queries, {len(known)} cafés, {len(index.rows)} documents\n")
+    settings = config["agent"]["search"]
+    print(f"\n{len(queries)} queries, {len(known)} cafés, {len(index.rows)} documents. "
+          f"device={settings.get('device', 'cpu')}, rerank_top={settings['rerank_top']}, "
+          f"rerank_min_words={settings.get('rerank_min_words', 1)}\n")
     print(f"{'Setup':<32}{'nDCG@5':>8}{'Recall@20':>11}{'s/query':>9}")
     for row in rows:
         print(f"{row['setup']:<32}{row['ndcg_at_5']:>8.3f}{row['recall_at_20']:>11.3f}{row['seconds_per_query']:>9.2f}")
@@ -93,7 +102,9 @@ def main():
 
     out = REPO / "agent_eval" / "results" / "search.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps({"queries": len(queries), "setups": rows}, indent=2), encoding="utf-8")
+    out.write_text(json.dumps({"queries": len(queries), "setups": rows,
+                               "settings": {key: settings.get(key) for key in ("device", "rerank_top", "rerank_min_words")}},
+                              indent=2), encoding="utf-8")
     print(f"\nSaved to {out.relative_to(REPO)}")
 
 
