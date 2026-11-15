@@ -17,7 +17,7 @@ common:
     detection_model: PP-OCRv6_small_det
     recognition_model: PP-OCRv6_small_rec
     device: cpu
-    enable_mkldnn: true        # set false if Paddle crashes with a oneDNN/MKLDNN error
+    enable_mkldnn: false        # set false if Paddle crashes with a oneDNN/MKLDNN error
 
   preprocess:
     # Everything is off until the M2 debug images show which steps help.
@@ -127,7 +127,7 @@ profiles:
     preprocess:
       upscale_long_side_px: 2000   # small web images read much better enlarged
     confidence:
-      ppocr_check: true
+      ppocr_check: false
     models:
       glm_ocr: glm-ocr         # the --served-model-name from GLM-OCR's README
       structurer: qwen3.5-9b
