@@ -22,6 +22,32 @@ def _has(text, phrases):
     return any(re.search(rf"\b{phrase}\b", text) for phrase in phrases)
 
 
+INSIGHTS = (r"\binsights?\b",
+            r"\bhow(?:'s| did| is| are| was) (my|our|the) (caf\w*|shop|business|place)\b",
+            r"\bhow (am|are) (i|we) doing\b",
+            r"\b(weekly|week'?s) (update|report|summary|numbers)\b",
+            r"\bhow many (people|customers|folks|times)\b.*\b(ask|search|view|look|pick|suggest|came|visit)",
+            r"\bhow (did|was) (this|last) week\b")
+AFFIRM_BUT = re.compile(r"^(yes|yeah|yep|yup|ok|okay|sure|correct|right|good)\b[\s,.!:;-]*"
+                        r"(but|except|however|though|although|just|only|also|and|then|now|apart from)\b", re.I)
+
+
+def wants_insights(text):
+    """The owner is asking how the café did lately. Answered from the counts, so the model never guesses."""
+    lowered = (text or "").lower().replace("\u2019", "'")
+    return any(re.search(pattern, lowered) for pattern in INSIGHTS)
+
+
+def is_yes_but(text):
+    """\"yes but the mocha is 6.50\": a fix, not a confirmation. Saving needs a clean yes."""
+    return bool(AFFIRM_BUT.match((text or "").strip()))
+
+
+def is_plain_yes(text):
+    """A bare "yes" or "save it". With no update open there is nothing for it to confirm."""
+    return _plain(text) in CONFIRM
+
+
 def quick_intent(text, draft):
     """("confirm" | "cancel" | "more" | "scope", value) or None. draft: the open update, or None."""
     if draft is None:

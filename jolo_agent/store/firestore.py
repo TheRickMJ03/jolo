@@ -351,6 +351,20 @@ class FirestoreStore(Store):
             out[snapshot.id] = int(version) if isinstance(version, (int, float)) else 0
         return out
 
+    # ---------- weekly insights ----------
+
+    def save_insight(self, cafe_id, report):
+        """cafes/{id}/insights/{weekStart}: what the app's dashboard reads (generatedAt as a Timestamp)."""
+        doc = {**report, "generatedAt": to_datetime(report["generatedAt"])}
+        self._cafe_ref(cafe_id).collection("insights").document(report["weekStart"]).set(doc)
+
+    def get_insight(self, cafe_id, week_start):
+        snapshot = self._cafe_ref(cafe_id).collection("insights").document(week_start).get()
+        if not snapshot.exists:
+            return None
+        doc = snapshot.to_dict() or {}
+        return {**doc, "generatedAt": to_iso(doc.get("generatedAt"))}
+
     # ---------- menu versions ----------
 
     def get_menu_version(self, cafe_id, version):

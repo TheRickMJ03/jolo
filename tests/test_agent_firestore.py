@@ -405,3 +405,17 @@ def test_a_failed_reindex_is_tried_again_next_time(tmp_path):
 def test_the_refresher_is_off_when_the_interval_is_zero(tmp_path):
     brain = make_brain(tmp_path)
     assert brain.start_refresher(0) is None
+
+
+def test_weekly_insights_land_under_the_cafe_where_the_app_reads_them(db):
+    from jolo_agent.insights import write_weekly_insights
+    from datetime import date
+    flow, store, _sent = flow_on(db)
+    store.add_event("search", phone_hash="a", data={"query": "cortado", "shown": ["barbaras"]},
+                    created_at="2026-11-04T15:00:00+00:00")
+    write_weekly_insights(store, date(2026, 11, 2), now=datetime(2026, 11, 9, 11, tzinfo=timezone.utc))
+    doc = get(db, "cafes/barbaras/insights/2026-11-02")
+    assert doc["weekStart"] == "2026-11-02" and doc["counts"]["customerQuestions"] == 1
+    assert doc["topItems"] == [{"name": "Cortado", "mentions": 1}] and isinstance(doc["generatedAt"], datetime)
+    assert store.get_insight("barbaras", "2026-11-02")["generatedAt"] == "2026-11-09T11:00:00+00:00"
+    assert store.get_insight("barbaras", "2026-11-09") is None

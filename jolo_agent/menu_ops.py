@@ -11,6 +11,7 @@ from rapidfuzz import fuzz
 # Ricardo before he renames them.)
 from menu_reader.compare import NAME_MATCH_THRESHOLD, _key, _pair_items, _size_key, compare_menus
 from menu_reader.schema import MenuItem, Price
+from jolo_agent.safety import clean_name
 
 GENERIC_SIZES = {"small", "medium", "large", "sm", "md", "lg", "s", "m", "l", "regular", "extralarge", "xl"}
 
@@ -77,6 +78,23 @@ def _target(items, current_items, name, threshold):
     raise EditError(f'I can\'t find "{name}" on the menu.')
 
 
+MAX_PRICE = 500.0
+MAX_NAME = 80
+
+
+def check_price(usd, category="drink"):
+    """A price the owner types must look like one. A drink or a dish is never free and never costs hundreds
+    of dollars; an add-on (extra shot, oat milk) may be free."""
+    if usd is None or isinstance(usd, bool):
+        raise EditError("I need a price in dollars.")
+    try:
+        usd = float(usd)
+    except (TypeError, ValueError):
+        raise EditError("I need a price in dollars.")
+    if usd < 0 or usd > MAX_PRICE or (usd == 0 and category != "modifier"):
+        raise EditError(f"${usd:.2f} doesn't look like a price on a menu. Tell me the price in dollars.")
+
+
 def apply_op(items, current_items, op, threshold=80):
     """Apply one owner fix to items (in place). Returns (text for the owner, before, after).
 
@@ -90,9 +108,8 @@ def apply_op(items, current_items, op, threshold=80):
     kind = op["op"]
 
     if kind == "set_price":
-        if op["usd"] is None or op["usd"] < 0:
-            raise EditError("I need a price in dollars.")
-        item = _target(items, current_items, op["item"], threshold)
+        item = _target(items, current_items, op["item"], threshold) if op.get("usd") is not None else None
+        check_price(op.get("usd"), item.category if item else "drink")
         before = item.model_dump()
         size = op.get("size")
         if size:
@@ -110,11 +127,11 @@ def apply_op(items, current_items, op, threshold=80):
         return f"{item.item} is now {format_prices(item)}.", before, item.model_dump()
 
     if kind == "rename_item":
-        if not (op.get("new_name") or "").strip():
+        if not clean_name(op.get("new_name")):
             raise EditError("What should the new name be?")
         item = _target(items, current_items, op["item"], threshold)
         before = item.model_dump()
-        old_name, item.item = item.item, op["new_name"].strip()
+        old_name, item.item = item.item, clean_name(op["new_name"])
         return f'Renamed "{old_name}" to "{item.item}".', before, item.model_dump()
 
     if kind == "rename_size":
@@ -133,15 +150,17 @@ def apply_op(items, current_items, op, threshold=80):
         return f'Size "{op["old_size"]}" is now "{op["new_size"].strip()}"{where}.', None, None
 
     if kind == "add_item":
-        name = (op.get("item") or "").strip()
+        name = clean_name(op.get("item"))
         if not name:
             raise EditError("What is the item called?")
         index, _candidates = find_item(items, name, 95)
         if index is not None:
             raise EditError(f"{items[index].item} is already there ({format_prices(items[index])}). "
                             "Tell me its new price if it changed.")
-        prices = [Price(size=op.get("size") or None, usd=float(op["usd"]))] if op.get("usd") is not None else []
         category = op.get("category") if op.get("category") in ("drink", "food", "modifier") else "drink"
+        if op.get("usd") is not None:
+            check_price(op["usd"], category)
+        prices = [Price(size=op.get("size") or None, usd=float(op["usd"]))] if op.get("usd") is not None else []
         item = MenuItem(section=op.get("section") or None, item=name, category=category,
                         prices=prices, confidence=1.0)
         items.append(item)

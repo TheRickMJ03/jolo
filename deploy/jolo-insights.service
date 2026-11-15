@@ -1,0 +1,9 @@
+# One run of the weekly insights job (see deploy/jolo-insights.timer). Edit User and the paths for your VM.
+[Unit]
+Description=JOLO weekly owner insights
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/jolo
+ExecStart=/home/ubuntu/jolo/.venv/bin/python scripts/weekly_insights.py

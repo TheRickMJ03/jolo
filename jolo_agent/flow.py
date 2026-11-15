@@ -20,12 +20,22 @@ from menu_reader.compare import _key
 from menu_reader.merge import merge_results
 from menu_reader.schema import MenuResult
 from jolo_agent import messages
+from jolo_agent.safety import clean_name
 from jolo_agent.store.base import StaleMenu
 from jolo_agent.menu_ops import (EditError, apply_op, changes_between, check_priority, final_items,
                                  has_generic_sizes, items_to_check, replay_ops)
 from jolo_agent.store.models import Draft
 
 log = logging.getLogger("jolo.flow")
+
+
+def clean_items(items):
+    """Names from a photo go into the model's prompt and into the store: one short line each, and an item
+    without a name at all is dropped."""
+    for item in items:
+        item.item = clean_name(item.item)
+        item.section = clean_name(item.section) or None
+    return [item for item in items if item.item]
 
 
 class MenuUpdateFlow:
@@ -95,6 +105,19 @@ class MenuUpdateFlow:
                                 to_check=batch, check_start=start, more_left=more_left,
                                 sizes_note=has_generic_sizes(to_check), full_scope=draft.scope == "full")
 
+    def recover_orphaned_reads(self):
+        """Call once at startup. A draft still in the "reading" state belongs to a read that ran in a thread of
+        a process that is gone (a restart or a crash), so no result will ever arrive for it. Drop it: the
+        owner's next photo starts a fresh update instead of waiting for ever. Returns how many were dropped."""
+        dropped = 0
+        for draft in self.store.list_drafts():
+            if draft.state == "reading":
+                self.store.delete_draft(draft.phone_hash)
+                dropped += 1
+        if dropped:
+            log.warning("Dropped %d menu update(s) whose photo read was lost in a restart", dropped)
+        return dropped
+
     # ---------- photos ----------
 
     def start_read(self, phone_hash, photo):
@@ -157,6 +180,7 @@ class MenuUpdateFlow:
 
         # Each photo was read without the current menu; the comparison is made once, on the merged menu.
         merged = merge_results(draft.results)
+        merged.items = clean_items(merged.items)
         current = self._current_items(draft.cafe_id)
         draft.items = replay_ops([item.model_copy(deep=True) for item in merged.items],
                                  current, draft.ops, self._threshold())
