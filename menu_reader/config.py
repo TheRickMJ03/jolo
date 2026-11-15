@@ -50,4 +50,7 @@ def load_config(profile=None):
         raise ValueError(f"Unknown profile {profile!r}. Choose from {sorted(raw['profiles'])}.")
     config = _merge(raw["common"], raw["profiles"][profile])
     config["profile"] = profile
+    # Docker: the model server is not on localhost inside a container.
+    if os.environ.get("JOLO_MODEL_ENDPOINT"):
+        config["endpoint"] = os.environ["JOLO_MODEL_ENDPOINT"]
     return config
