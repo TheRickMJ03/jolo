@@ -2,7 +2,9 @@ services:
   jolo:
     build: .
     ports:
-      - "8080:8080"
+      # This Mac's Firestore emulator already listens on 8080. The process
+      # inside the container still uses 8080; the Mac reaches it on 8090.
+      - "8090:8080"
     environment:
       # Required: callers must send "Authorization: Bearer <AGENT_TOKEN>" or X-Jolo-Key.
       AGENT_TOKEN: ${AGENT_TOKEN:?set AGENT_TOKEN in .env}
@@ -14,10 +16,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - jolo-data:/app/data        # store + search index survive restarts
+      # The host folder already has cafes.yaml and the seeded store.
+      # A named volume would hide those files on the first start.
+      - ./data:/app/data
       - jolo-models:/app/models    # Hugging Face downloads
     restart: unless-stopped
 
 volumes:
-  jolo-data:
   jolo-models:
