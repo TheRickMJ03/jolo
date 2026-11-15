@@ -11,6 +11,10 @@ if [ ! -f data/store.json ]; then
   else
     python scripts/seed_store.py
   fi
+  # The real Princeton cafés (no menus yet: owners add them). Skipped if the file is absent.
+  if [ -f data/cafes_osm.yaml ]; then
+    python scripts/load_real_cafes.py || echo "Could not load the real cafés."
+  fi
 fi
 if [ ! -d data/index ]; then
   echo "Building the search index (downloads ~1.2 GB of models the first time)..."

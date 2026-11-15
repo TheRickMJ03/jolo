@@ -1,0 +1,8 @@
+# Example for scripts/load_real_cafes.py --menus. Copy to data/real_menus.yaml and edit.
+# public_menu = read from a menu picture online (prices allowed).
+# inferred    = item names mentioned by customers (prices are ignored).
+small_world_coffee:
+  source: inferred
+  items:
+    - {item: Cortado, category: drink}
+    - {item: Iced Latte, category: drink}
