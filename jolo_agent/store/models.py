@@ -91,7 +91,9 @@ class MenuVersion(BaseModel):
     version: int
     items: list[MenuItem] = Field(default_factory=list)
     hours: str | None = None
-    source: Literal["photo", "owner_text", "app", "seed"] = "photo"
+    source: Literal["photo", "owner_text", "app", "seed", "public_menu", "inferred"] = "photo"
+    # public_menu: read from a menu picture found online, not sent by the owner. inferred: item names only,
+    # taken from what customers mention; no prices.
     scope: Literal["full", "partial"] | None = None
     changes: Changes = Field(default_factory=Changes)    # against the version before
     sold_out: list[str] = Field(default_factory=list)    # names of items the owner marked sold out in the app

@@ -205,9 +205,9 @@ def version_to_doc(version, previous_doc=None, owner_phone=None):
         "basedOn": version.version - 1,
         "scope": version.scope,
         "source": "app" if version.source == "app" else "imessage",
-        "agentSource": version.source,          # the brain's finer label: photo, owner_text, seed
+        "agentSource": version.source,          # the brain's finer label: photo, owner_text, seed, public_menu, inferred
         "createdAt": to_datetime(version.created_at),
-        "createdBy": {"phone": owner_phone if version.source != "seed" else None, "uid": None},
+        "createdBy": {"phone": owner_phone if version.source not in ("seed", "public_menu", "inferred") else None, "uid": None},
         "items": items,
         "hoursText": version.hours,
         "changes": {
