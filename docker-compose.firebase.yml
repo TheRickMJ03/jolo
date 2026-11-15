@@ -1,0 +1,14 @@
+# The brain on the real Firebase project (the one the app uses). Try docker-compose.emulator.yml first.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.firebase.yml up -d --build
+#
+# Needs in .env: FIREBASE_PROJECT_ID, and the service-account key at FIREBASE_KEY_FILE
+# (default ./secrets/serviceAccount.json; secrets/ is git-ignored). See docs/firebase-intro.md.
+services:
+  jolo:
+    environment:
+      JOLO_STORE_BACKEND: firestore
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-key.json
+      GOOGLE_CLOUD_PROJECT: ${FIREBASE_PROJECT_ID:?set FIREBASE_PROJECT_ID in .env}
+    volumes:
+      - ${FIREBASE_KEY_FILE:-./secrets/serviceAccount.json}:/run/secrets/firebase-key.json:ro

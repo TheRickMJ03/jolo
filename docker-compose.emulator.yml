@@ -1,0 +1,39 @@
+# The brain on a local Firestore emulator (no Firebase account, no key).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.emulator.yml up -d --build
+#
+# Emulator UI: http://localhost:4000   Firestore: localhost:8080 (also for jolo-app and host scripts)
+services:
+  firestore:
+    build: docker/firestore
+    ports:
+      - "8080:8080"
+      - "4000:4000"
+      - "4400:4400"
+      - "4500:4500"
+    environment:
+      GOOGLE_CLOUD_PROJECT: demo-jolo      # "demo-" projects never touch the cloud
+    volumes:
+      - ./jolo-app/firestore.rules:/firebase/rules/firestore.rules:ro
+      - ./jolo-app/firestore.indexes.json:/firebase/rules/firestore.indexes.json:ro
+      - firestore-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080').then(()=>process.exit(0),()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    # Time to export the data on stop.
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  jolo:
+    environment:
+      JOLO_STORE_BACKEND: firestore
+      FIRESTORE_EMULATOR_HOST: firestore:8080
+      GOOGLE_CLOUD_PROJECT: demo-jolo
+    depends_on:
+      firestore:
+        condition: service_healthy
+
+volumes:
+  firestore-data:

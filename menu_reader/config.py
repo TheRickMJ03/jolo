@@ -53,4 +53,7 @@ def load_config(profile=None):
     # Docker: the model server is not on localhost inside a container.
     if os.environ.get("JOLO_MODEL_ENDPOINT"):
         config["endpoint"] = os.environ["JOLO_MODEL_ENDPOINT"]
+    # Docker: pick memory or firestore without editing config.yaml.
+    if os.environ.get("JOLO_STORE_BACKEND") and "agent" in config:
+        config["agent"]["store"]["backend"] = os.environ["JOLO_STORE_BACKEND"]
     return config

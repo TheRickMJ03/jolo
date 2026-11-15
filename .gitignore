@@ -97,6 +97,7 @@ OllamaSetup.exe
 data/store.json
 data/store.tmp
 data/index/
+data/.index_store
 agent_eval/results/
 # Firebase / Google Cloud service-account keys (agent.store.backend: firestore)
 serviceAccount*.json
@@ -105,3 +106,4 @@ firebase-adminsdk*.json
 *-firebase-adminsdk-*.json
 google-credentials*.json
 credentials.json
+secrets/
